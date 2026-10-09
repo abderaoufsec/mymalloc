@@ -43,7 +43,7 @@ mymalloc_apply_sanitizers()
 # Phase 0 only ships version metadata; my_malloc/my_free/my_calloc/my_realloc
 # are declared in <mymalloc/mymalloc.h> but implemented in later phases.
 # ---------------------------------------------------------------------------
-add_library(mymalloc src/version.cpp)
+add_library(mymalloc src/version.cpp src/raw_memory.cpp)
 add_library(mymalloc::mymalloc ALIAS mymalloc)
 
 target_include_directories(mymalloc

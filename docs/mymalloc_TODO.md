@@ -20,13 +20,13 @@
 - [x] Document process memory layout
 
 ## Phase 2 — Raw Memory
-- [ ] Study `mmap()` / `munmap()`
-- [ ] Study `brk()` / `sbrk()`
-- [ ] Choose initial OS memory strategy
-- [ ] Implement raw region acquisition
-- [ ] Implement region release
-- [ ] Handle OS allocation failure
-- [ ] Test repeated acquire/release
+- [x] Study `mmap()` / `munmap()`
+- [x] Study `brk()` / `sbrk()`
+- [x] Choose initial OS memory strategy
+- [x] Implement raw region acquisition
+- [x] Implement region release
+- [x] Handle OS allocation failure
+- [x] Test repeated acquire/release
 
 ## Phase 3 — Alignment
 - [ ] Define alignment requirements

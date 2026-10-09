@@ -4,3 +4,8 @@ target_link_libraries(hello_mymalloc PRIVATE mymalloc::mymalloc)
 # Phase 1 experiment: prints the process address-space layout
 # (see docs/phase1_memory_model.md).
 add_executable(memory_layout memory_layout.cpp)
+
+# Phase 2 experiment: acquire/release raw page-granular regions
+# (see docs/phase2_raw_memory.md).
+add_executable(raw_memory_demo raw_memory_demo.cpp)
+target_link_libraries(raw_memory_demo PRIVATE mymalloc::mymalloc)
