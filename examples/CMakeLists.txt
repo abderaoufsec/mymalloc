@@ -9,3 +9,8 @@ add_executable(memory_layout memory_layout.cpp)
 # (see docs/phase2_raw_memory.md).
 add_executable(raw_memory_demo raw_memory_demo.cpp)
 target_link_libraries(raw_memory_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 3 experiment: alignment requirements and overflow-safe rounding
+# (see docs/phase3_alignment.md).
+add_executable(alignment_demo alignment_demo.cpp)
+target_link_libraries(alignment_demo PRIVATE mymalloc::mymalloc)

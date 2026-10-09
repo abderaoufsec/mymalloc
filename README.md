@@ -160,7 +160,11 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   layer (`<mymalloc/raw_memory.h>`, page-rounded/aligned, zero-filled,
   overflow- and failure-safe), demo (`examples/raw_memory_demo.cpp`), tests
   (`test_raw_memory`)
-- [ ] Phase 3+ — alignment, metadata, allocator core,
+- [x] **Phase 3 — Alignment**: requirements and overflow-safe rounding helpers
+  in [docs/phase3_alignment.md](docs/phase3_alignment.md)
+  (`<mymalloc/alignment.h>`), demo (`examples/alignment_demo.cpp`), tests
+  (`test_alignment`, incl. boundary sweep + raw-region integration)
+- [ ] Phase 4+ — metadata, allocator core,
   strategies, fragmentation, debugging, stress tests, benchmarks
 
 ## Engineering rules

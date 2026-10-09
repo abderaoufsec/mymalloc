@@ -29,11 +29,11 @@
 - [x] Test repeated acquire/release
 
 ## Phase 3 — Alignment
-- [ ] Define alignment requirements
-- [ ] Implement safe alignment helpers
-- [ ] Handle alignment arithmetic overflow
-- [ ] Verify returned pointers
-- [ ] Test many sizes and boundaries
+- [x] Define alignment requirements
+- [x] Implement safe alignment helpers
+- [x] Handle alignment arithmetic overflow
+- [x] Verify returned pointers
+- [x] Test many sizes and boundaries
 
 ## Phase 4 — Block Metadata
 - [ ] Design block header
