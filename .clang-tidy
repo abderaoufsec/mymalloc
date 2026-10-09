@@ -1,0 +1,13 @@
+# Static analysis configuration for clang-tidy (used locally and in CI where
+# available). Kept intentionally conservative: correctness-focused checks
+# first, style noise excluded.
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  performance-*,
+  portability-*,
+  -bugprone-easily-swappable-parameters
+WarningsAsErrors: ''
+HeaderFilterRegex: '(include/mymalloc|src/|tests/|examples/)'
+FormatStyle: file

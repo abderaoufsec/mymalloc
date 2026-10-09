@@ -1,0 +1,19 @@
+# Build output
+/out/
+/build/
+/cmake-build-*/
+compile_commands.json
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+*.swp
+*.user
+
+# Local CMake overrides (never committed)
+CMakeUserPresets.json
+
+# OS noise
+Thumbs.db
+.DS_Store

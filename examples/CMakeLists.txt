@@ -1,0 +1,2 @@
+add_executable(hello_mymalloc hello_mymalloc.cpp)
+target_link_libraries(hello_mymalloc PRIVATE mymalloc::mymalloc)
