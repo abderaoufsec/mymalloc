@@ -9,3 +9,4 @@ endfunction()
 
 mymalloc_add_test(test_version)
 mymalloc_add_test(test_public_header)
+mymalloc_add_test(test_memory_layout)

@@ -151,7 +151,11 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
 - [x] **Phase 0 — Foundation**: C++20 + CMake project, layout, strict warnings,
   Debug/Release, ASan/UBSan, clang-format/static analysis, GitHub CI,
   initial tests, build documentation
-- [ ] Phase 1+ — memory model, raw memory, alignment, metadata, allocator core,
+- [x] **Phase 1 — Memory Model**: address-space study and invariants in
+  [docs/phase1_memory_model.md](docs/phase1_memory_model.md), layout experiment
+  (`examples/memory_layout.cpp`, incl. `/proc/self/maps` on Linux), invariants
+  test (`test_memory_layout`)
+- [ ] Phase 2+ — raw memory, alignment, metadata, allocator core,
   strategies, fragmentation, debugging, stress tests, benchmarks
 
 ## Engineering rules

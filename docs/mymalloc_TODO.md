@@ -12,12 +12,12 @@
 - [x] README/build documentation
 
 ## Phase 1 — Memory Model
-- [ ] Study virtual address spaces
-- [ ] Study stack, heap, `.text`, `.data`, `.bss`
-- [ ] Study pages and page size
-- [ ] Study `/proc/self/maps`
-- [ ] Write address-layout experiments
-- [ ] Document process memory layout
+- [x] Study virtual address spaces
+- [x] Study stack, heap, `.text`, `.data`, `.bss`
+- [x] Study pages and page size
+- [x] Study `/proc/self/maps`
+- [x] Write address-layout experiments
+- [x] Document process memory layout
 
 ## Phase 2 — Raw Memory
 - [ ] Study `mmap()` / `munmap()`
