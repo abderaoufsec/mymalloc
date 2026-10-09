@@ -44,13 +44,13 @@
 - [x] Add metadata validation
 
 ## Phase 5 — First Allocator
-- [ ] Implement `my_malloc`
-- [ ] Implement `my_free`
-- [ ] Acquire memory when needed
-- [ ] Return aligned memory
-- [ ] Handle `free(nullptr)`
-- [ ] Test single/multiple allocations
-- [ ] Test allocation failure
+- [x] Implement `my_malloc`
+- [x] Implement `my_free`
+- [x] Acquire memory when needed
+- [x] Return aligned memory
+- [x] Handle `free(nullptr)`
+- [x] Test single/multiple allocations
+- [x] Test allocation failure
 
 ## Phase 6 — Free List
 - [ ] Design free-list structure

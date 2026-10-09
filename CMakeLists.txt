@@ -47,7 +47,8 @@ add_library(mymalloc
             src/version.cpp
             src/raw_memory.cpp
             src/alignment.cpp
-            src/block.cpp)
+            src/block.cpp
+            src/allocator.cpp)
 add_library(mymalloc::mymalloc ALIAS mymalloc)
 
 target_include_directories(mymalloc

@@ -19,3 +19,8 @@ target_link_libraries(alignment_demo PRIVATE mymalloc::mymalloc)
 # (see docs/phase4_block_metadata.md).
 add_executable(block_demo block_demo.cpp)
 target_link_libraries(block_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 5 experiment: the first working my_malloc / my_free
+# (see docs/phase5_allocator.md).
+add_executable(allocator_demo allocator_demo.cpp)
+target_link_libraries(allocator_demo PRIVATE mymalloc::mymalloc)

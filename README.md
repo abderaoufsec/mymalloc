@@ -169,8 +169,13 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   ([docs/phase4_block_metadata.md](docs/phase4_block_metadata.md)),
   `<mymalloc/block.h>` conversions + ordered corruption-detecting validator,
   demo (`examples/block_demo.cpp`), tests (`test_block`)
-- [ ] Phase 5+ — allocator core,
-  strategies, fragmentation, debugging, stress tests, benchmarks
+- [x] **Phase 5 — First Allocator**: working `my_malloc`/`my_free`
+  (region-per-block model, overflow-safe sizing, aligned results,
+  documented no-reuse limits deferred to Phases 6-8) in
+  [docs/phase5_allocator.md](docs/phase5_allocator.md), demo
+  (`examples/allocator_demo.cpp`), tests (`test_allocator`)
+- [ ] Phase 6+ — free list, splitting, coalescing, strategies,
+  fragmentation, debugging, stress tests, benchmarks
 
 ## Engineering rules
 
