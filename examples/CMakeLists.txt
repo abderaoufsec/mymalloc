@@ -14,3 +14,8 @@ target_link_libraries(raw_memory_demo PRIVATE mymalloc::mymalloc)
 # (see docs/phase3_alignment.md).
 add_executable(alignment_demo alignment_demo.cpp)
 target_link_libraries(alignment_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 4 experiment: block headers, conversions, validation
+# (see docs/phase4_block_metadata.md).
+add_executable(block_demo block_demo.cpp)
+target_link_libraries(block_demo PRIVATE mymalloc::mymalloc)

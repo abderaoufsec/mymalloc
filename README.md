@@ -164,7 +164,12 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   in [docs/phase3_alignment.md](docs/phase3_alignment.md)
   (`<mymalloc/alignment.h>`), demo (`examples/alignment_demo.cpp`), tests
   (`test_alignment`, incl. boundary sweep + raw-region integration)
-- [ ] Phase 4+ — metadata, allocator core,
+- [x] **Phase 4 — Block Metadata**: header design with size/state/neighbor
+  semantics and documented boundary-tag tradeoff
+  ([docs/phase4_block_metadata.md](docs/phase4_block_metadata.md)),
+  `<mymalloc/block.h>` conversions + ordered corruption-detecting validator,
+  demo (`examples/block_demo.cpp`), tests (`test_block`)
+- [ ] Phase 5+ — allocator core,
   strategies, fragmentation, debugging, stress tests, benchmarks
 
 ## Engineering rules

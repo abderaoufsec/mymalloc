@@ -36,12 +36,12 @@
 - [x] Test many sizes and boundaries
 
 ## Phase 4 — Block Metadata
-- [ ] Design block header
-- [ ] Define size/state semantics
-- [ ] Track neighboring blocks
-- [ ] Convert header ↔ user pointer safely
-- [ ] Define metadata invariants
-- [ ] Add metadata validation
+- [x] Design block header
+- [x] Define size/state semantics
+- [x] Track neighboring blocks
+- [x] Convert header ↔ user pointer safely
+- [x] Define metadata invariants
+- [x] Add metadata validation
 
 ## Phase 5 — First Allocator
 - [ ] Implement `my_malloc`
