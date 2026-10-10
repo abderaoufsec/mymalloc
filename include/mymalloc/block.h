@@ -73,6 +73,19 @@ int my_block_init(my_block_header* base, size_t size, int is_free, my_block_head
 // caller's responsibility (see docs/phase7_splitting.md).
 int my_block_split(my_block_header* block, size_t front_size);
 
+// Merges two physically adjacent, address-ordered blocks into one: `upper`
+// must be the immediate physical successor of `lower` (lower->next == upper
+// and upper->prev == lower). `lower` keeps its address and grows to cover
+// `upper`'s bytes; the physical chain is repaired (lower->next takes
+// upper->next, and that neighbor is re-linked to lower). `upper` ceases to be
+// an independent block. Returns 1 on success, 0 when either block is NULL or
+// fails my_block_valid, or when they are not linked neighbors.
+//
+// This is a pure physical operation: it does not touch free-list membership
+// or the free flag. The coalescing caller removes both halves from the list
+// and re-inserts the survivor (see docs/phase8_coalescing.md).
+int my_block_merge(my_block_header* lower, my_block_header* upper);
+
 // Neighbor accessors (NULL-safe). Precondition: trusted/readable header.
 my_block_header* my_block_prev(const my_block_header* block);
 my_block_header* my_block_next(const my_block_header* block);

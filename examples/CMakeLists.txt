@@ -34,3 +34,8 @@ target_link_libraries(free_list_demo PRIVATE mymalloc::mymalloc)
 # (see docs/phase7_splitting.md).
 add_executable(split_demo split_demo.cpp)
 target_link_libraries(split_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 8 experiment: coalescing adjacent free blocks on free
+# (see docs/phase8_coalescing.md).
+add_executable(coalescing_demo coalescing_demo.cpp)
+target_link_libraries(coalescing_demo PRIVATE mymalloc::mymalloc)

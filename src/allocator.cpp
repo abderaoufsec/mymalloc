@@ -1,10 +1,12 @@
-// The mymalloc allocator (Phases 5-7): my_malloc / my_free.
+// The mymalloc allocator (Phases 5-8): my_malloc / my_free.
 //
 // Model: every allocation gets its own raw region (page-rounded) holding one
 // block. Freed blocks are published to the free list and reused first-fit
 // (Phase 6); an oversized reused block is SPLIT so the request takes the
-// front and a worthwhile remainder stays listed (Phase 7); no coalescing
-// (Phase 8), no region release (Phase 12) yet. See docs/phase7_splitting.md
+// front and a worthwhile remainder stays listed (Phase 7); on free, a block
+// COALESCES with adjacent free neighbors so split/free cycles do not
+// fragment a region (Phase 8); no region release (Phase 12) yet. See
+// docs/phase8_coalescing.md for the merge policy, docs/phase7_splitting.md
 // for the split policy, docs/phase6_free_list.md for the reuse design and
 // docs/phase5_allocator.md for the base model and its limits.
 #include <mymalloc/alignment.h>
@@ -127,12 +129,30 @@ void my_free(void* ptr) {
         return;
     }
 
-    // Mark free and publish it to the free list for first-fit reuse.
-    // Merging neighbors needs coalescing (Phase 8); unmapping the region
-    // needs region tracking (Phase 12).
+    // Phase 8: coalesce with physically adjacent FREE neighbors before
+    // publishing, so the split/free cycles of Phases 6-7 do not fragment a
+    // region into many small free blocks. The freed block is not listed yet,
+    // so only its neighbors need un-listing; the survivor keeps the LOWEST
+    // address (the address-ordered list expects that) and is inserted once.
+    // The earlier my_block_valid(block) guarantees a consistent physical
+    // chain, so a neighbor that un-lists cleanly also merges cleanly.
     block->free = 1;
+    my_block_header* merged = block;
+
+    my_block_header* const lower = my_block_prev(merged);
+    if (lower != NULL && my_block_is_free(lower) == 1 && my_free_list_remove(lower) == 1 &&
+        my_block_merge(lower, merged) == 1) {
+        merged = lower; // survivor keeps the lowest address
+    }
+
+    my_block_header* const upper = my_block_next(merged);
+    if (upper != NULL && my_block_is_free(upper) == 1 && my_free_list_remove(upper) == 1 &&
+        my_block_merge(merged, upper) == 1) {
+        // `merged` now spans the upper neighbor too.
+    }
+
     // Defensive: insert can only fail on a header too broken to validate
     // (checked above). Staying free-but-unlisted is leak-safe; corrupting
     // the list would not be.
-    static_cast<void>(my_free_list_insert(block));
+    static_cast<void>(my_free_list_insert(merged));
 }

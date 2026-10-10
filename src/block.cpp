@@ -107,6 +107,35 @@ int my_block_split(my_block_header* block, size_t front_size) {
     return 1;
 }
 
+int my_block_merge(my_block_header* lower, my_block_header* upper) {
+    if (lower == NULL || upper == NULL) {
+        return 0;
+    }
+    // Both halves must be well-formed headers before we fuse them.
+    if (my_block_valid(lower) != 1 || my_block_valid(upper) != 1) {
+        return 0;
+    }
+    // They must be linked physical neighbors in address order. my_block_valid
+    // already proved adjacency/reciprocity for each, but this pins down WHICH
+    // pair we are fusing and rejects unrelated blocks passed by mistake.
+    if (lower->next != upper || upper->prev != lower) {
+        return 0;
+    }
+
+    my_block_header* const above = upper->next; // upper's neighbor above (or NULL)
+    // Defensive: the two extents are real, adjacent, mapped blocks, so their
+    // sum cannot wrap — but guard anyway to stay overflow-clean.
+    if (upper->size > SIZE_MAX - lower->size) {
+        return 0;
+    }
+    lower->size += upper->size; // lower now spans both extents
+    lower->next = above;        // bridge over the absorbed block
+    if (above != NULL) {
+        above->prev = lower; // re-link the upper neighbor to the survivor
+    }
+    return 1;
+}
+
 my_block_header* my_block_prev(const my_block_header* block) {
     return block == NULL ? NULL : block->prev;
 }

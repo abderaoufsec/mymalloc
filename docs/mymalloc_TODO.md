@@ -70,11 +70,11 @@
 - [x] Test boundary cases
 
 ## Phase 8 — Coalescing
-- [ ] Detect adjacent free blocks
-- [ ] Merge previous/next blocks
-- [ ] Update metadata and free list
-- [ ] Handle both neighbors
-- [ ] Test fragmentation reduction
+- [x] Detect adjacent free blocks
+- [x] Merge previous/next blocks
+- [x] Update metadata and free list
+- [x] Handle both neighbors
+- [x] Test fragmentation reduction
 
 ## Phase 9 — Allocation Strategies
 - [ ] Formalize first-fit

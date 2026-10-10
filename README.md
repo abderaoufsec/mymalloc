@@ -119,6 +119,8 @@ dependencies). Current tests:
   failures (Phase 5)
 - `test_free_list` — free-list invariants, first-fit, reuse (Phase 6)
 - `test_split` — splitting, remainder insertion, reuse boundary cases (Phase 7)
+- `test_coalescing` — `my_block_merge`, neighbor fusion, split/free round-trip,
+  fragmentation reduction (Phase 8)
 
 Run everything with `ctest --preset debug`, or a single test:
 
@@ -195,7 +197,13 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   for reuse, with a documented minimum-remainder rule and no coalescing yet
   ([docs/phase7_splitting.md](docs/phase7_splitting.md)), demo
   (`examples/split_demo.cpp`), tests (`test_split`)
-- [ ] Phase 8+ — coalescing, strategies,
+- [x] **Phase 8 — Coalescing**: `my_block_merge` fuses a freed block with its
+  physically adjacent FREE neighbors in `my_free`, publishing a single
+  lowest-address survivor so Phase 7's split/free cycles round-trip back to
+  one whole block and a region never fragments
+  ([docs/phase8_coalescing.md](docs/phase8_coalescing.md)), demo
+  (`examples/coalescing_demo.cpp`), tests (`test_coalescing`)
+- [ ] Phase 9+ — allocation strategies,
   fragmentation, debugging, stress tests, benchmarks
 
 ## Engineering rules
