@@ -1,10 +1,12 @@
-// The mymalloc allocator (Phases 5-6): my_malloc / my_free.
+// The mymalloc allocator (Phases 5-7): my_malloc / my_free.
 //
 // Model: every allocation gets its own raw region (page-rounded) holding one
 // block. Freed blocks are published to the free list and reused first-fit
-// (Phase 6); no splitting (Phase 7), no coalescing (Phase 8), no region
-// release (Phase 12) yet. See docs/phase6_free_list.md for the reuse design
-// and docs/phase5_allocator.md for the base model and its limits.
+// (Phase 6); an oversized reused block is SPLIT so the request takes the
+// front and a worthwhile remainder stays listed (Phase 7); no coalescing
+// (Phase 8), no region release (Phase 12) yet. See docs/phase7_splitting.md
+// for the split policy, docs/phase6_free_list.md for the reuse design and
+// docs/phase5_allocator.md for the base model and its limits.
 #include <mymalloc/alignment.h>
 #include <mymalloc/block.h>
 #include <mymalloc/free_list.h>
@@ -12,6 +14,20 @@
 #include <mymalloc/raw_memory.h>
 
 #include <cstdint>
+
+namespace {
+
+// Splitting a reused free block is only worthwhile when the leftover
+// remainder can stand on its own as a free-list member: a valid block
+// header (my_block_user_offset()) plus room for the intrusive list links
+// (sizeof(my_free_links)). A smaller leftover is kept as internal slack in
+// the returned allocation instead of creating a free block too small to be
+// re-listed (which my_free_list_insert would reject).
+std::size_t min_split_remainder() {
+    return my_block_user_offset() + sizeof(my_free_links);
+}
+
+} // namespace
 
 void* my_malloc(size_t size) {
     // Phase 5 decision: zero-sized requests fail loudly (C allows either).
@@ -30,11 +46,30 @@ void* my_malloc(size_t size) {
     }
     const std::size_t total = aligned_payload + offset; // alignment multiple
 
-    // Phase 6: reuse before acquiring — first fit over the free list. The
-    // chosen block is at least `total` bytes (header included), so it serves
-    // the request as-is; splitting larger blocks is Phase 7.
+    // Phase 6-7: reuse before acquiring — first fit over the free list. The
+    // chosen block is at least `total` bytes (header included). Phase 7: when
+    // the leftover remainder is large enough to be a useful free block, split
+    // the fit — return the front `total` bytes and keep the remainder listed;
+    // otherwise reuse the fit whole (Phase 6) and absorb the small slack.
     my_block_header* const fit = my_free_list_first_fit(total);
     if (fit != NULL) {
+        const std::size_t remainder = fit->size - total; // total <= fit->size
+        if (remainder >= min_split_remainder()) {
+            // Split: `fit` keeps its address as the FRONT (size total); a new
+            // REMAINDER block is carved at fit->next. Both inherit free state.
+            if (my_block_split(fit, total) != 1) {
+                return NULL; // defensive: fit is valid and total < fit->size
+            }
+            my_block_header* const tail = fit->next; // the created remainder
+            if (my_free_list_remove(fit) != 1) {
+                return NULL; // defensive: the scan just found it listed
+            }
+            fit->free = 0;                                // front is now allocated
+            tail->free = 1;                               // remainder stays free (explicit)
+            static_cast<void>(my_free_list_insert(tail)); // remainder reusable
+            return my_block_to_user(fit);
+        }
+        // Too small a remainder to split: hand back the whole fit (Phase 6).
         if (my_free_list_remove(fit) != 1) {
             return NULL; // cannot happen: the scan just found it listed
         }

@@ -29,3 +29,8 @@ target_link_libraries(allocator_demo PRIVATE mymalloc::mymalloc)
 # (see docs/phase6_free_list.md).
 add_executable(free_list_demo free_list_demo.cpp)
 target_link_libraries(free_list_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 7 experiment: splitting oversized free blocks during reuse
+# (see docs/phase7_splitting.md).
+add_executable(split_demo split_demo.cpp)
+target_link_libraries(split_demo PRIVATE mymalloc::mymalloc)

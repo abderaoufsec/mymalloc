@@ -55,6 +55,24 @@ size_t my_block_payload_size(const my_block_header* block);
 int my_block_init(my_block_header* base, size_t size, int is_free, my_block_header* prev,
                   my_block_header* next);
 
+// Splits `block` into two physically adjacent blocks: a FRONT of `front_size`
+// bytes that keeps `block`'s address, `prev`, and free state, and a REMAINDER
+// occupying the rest of the region at (block + front_size). Repairs the
+// physical neighbor chain (front->next = remainder, remainder->prev = front,
+// the old upper neighbor is re-linked to the remainder). Returns 1 on success,
+// 0 when:
+// - block is NULL or fails my_block_valid,
+// - front_size is 0, not a multiple of my_default_alignment(), or
+//   < my_block_user_offset(),
+// - front_size >= block->size (no remainder would be left), or
+// - the remainder (block->size - front_size) < my_block_user_offset()
+//   (too small to be a legal block).
+//
+// Both halves inherit `block`'s free state; the caller adjusts each as needed.
+// This touches only headers and physical links — free-list membership is the
+// caller's responsibility (see docs/phase7_splitting.md).
+int my_block_split(my_block_header* block, size_t front_size);
+
 // Neighbor accessors (NULL-safe). Precondition: trusted/readable header.
 my_block_header* my_block_prev(const my_block_header* block);
 my_block_header* my_block_next(const my_block_header* block);

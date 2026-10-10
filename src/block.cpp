@@ -67,6 +67,46 @@ int my_block_init(my_block_header* base, size_t size, int is_free, my_block_head
     return 1;
 }
 
+int my_block_split(my_block_header* block, size_t front_size) {
+    // The block must be a well-formed, valid header before we carve it.
+    if (my_block_valid(block) != 1) {
+        return 0;
+    }
+    const std::size_t alignment = my_default_alignment();
+    const std::size_t offset = my_block_user_offset();
+    // The front must itself be a legal block and must leave a remainder.
+    if (front_size == 0 || (front_size % alignment) != 0 || front_size < offset) {
+        return 0;
+    }
+    if (front_size >= block->size) {
+        return 0; // no remainder would be left
+    }
+    const std::size_t remainder_size = block->size - front_size;
+    if (remainder_size < offset) {
+        return 0; // the remainder could not be a valid block
+    }
+
+    my_block_header* const old_next = block->next;
+    my_block_header* const remainder =
+        reinterpret_cast<my_block_header*>(reinterpret_cast<unsigned char*>(block) + front_size);
+
+    // FRONT: same address, same prev, same free state; only size/next change.
+    block->size = front_size;
+    block->next = remainder;
+
+    // REMAINDER: fills the tail, inherits the free state (block->free is left
+    // untouched above), and is wired into the physical chain between the front
+    // and the old upper neighbor.
+    remainder->size = remainder_size;
+    remainder->free = block->free;
+    remainder->prev = block;
+    remainder->next = old_next;
+    if (old_next != NULL) {
+        old_next->prev = remainder;
+    }
+    return 1;
+}
+
 my_block_header* my_block_prev(const my_block_header* block) {
     return block == NULL ? NULL : block->prev;
 }

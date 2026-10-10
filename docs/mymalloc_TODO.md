@@ -62,12 +62,12 @@
 - [x] Add consistency checks
 
 ## Phase 7 — Splitting
-- [ ] Detect oversized free blocks
-- [ ] Define minimum split size
-- [ ] Split safely
-- [ ] Return requested portion
-- [ ] Insert remainder
-- [ ] Test boundary cases
+- [x] Detect oversized free blocks
+- [x] Define minimum split size
+- [x] Split safely
+- [x] Return requested portion
+- [x] Insert remainder
+- [x] Test boundary cases
 
 ## Phase 8 — Coalescing
 - [ ] Detect adjacent free blocks

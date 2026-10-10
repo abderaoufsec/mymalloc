@@ -118,6 +118,7 @@ dependencies). Current tests:
 - `test_allocator` — `my_malloc`/`my_free` contract: alignment, isolation,
   failures (Phase 5)
 - `test_free_list` — free-list invariants, first-fit, reuse (Phase 6)
+- `test_split` — splitting, remainder insertion, reuse boundary cases (Phase 7)
 
 Run everything with `ctest --preset debug`, or a single test:
 
@@ -189,7 +190,12 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   double-free guarding in `my_free` and a machine-checked consistency audit
   ([docs/phase6_free_list.md](docs/phase6_free_list.md)), demo
   (`examples/free_list_demo.cpp`), tests (`test_free_list`)
-- [ ] Phase 7+ — splitting, coalescing, strategies,
+- [x] **Phase 7 — Splitting**: `my_block_split` carves a first-fit block into
+  an allocated front (returned) and a worthwhile remainder that stays listed
+  for reuse, with a documented minimum-remainder rule and no coalescing yet
+  ([docs/phase7_splitting.md](docs/phase7_splitting.md)), demo
+  (`examples/split_demo.cpp`), tests (`test_split`)
+- [ ] Phase 8+ — coalescing, strategies,
   fragmentation, debugging, stress tests, benchmarks
 
 ## Engineering rules
