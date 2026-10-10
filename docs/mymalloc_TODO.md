@@ -77,11 +77,11 @@
 - [x] Test fragmentation reduction
 
 ## Phase 9 — Allocation Strategies
-- [ ] Formalize first-fit
-- [ ] Measure fragmentation/cost
-- [ ] Implement best-fit optionally
-- [ ] Compare strategies
-- [ ] Select/document default
+- [x] Formalize first-fit
+- [x] Measure fragmentation/cost
+- [x] Implement best-fit optionally
+- [x] Compare strategies
+- [x] Select/document default
 
 ## Phase 10 — `calloc`
 - [ ] Implement `my_calloc`

@@ -121,6 +121,8 @@ dependencies). Current tests:
 - `test_split` — splitting, remainder insertion, reuse boundary cases (Phase 7)
 - `test_coalescing` — `my_block_merge`, neighbor fusion, split/free round-trip,
   fragmentation reduction (Phase 8)
+- `test_strategy` — `my_free_list_best_fit`, strategy selector, end-to-end
+  first-fit vs best-fit placement (Phase 9)
 
 Run everything with `ctest --preset debug`, or a single test:
 
@@ -203,7 +205,13 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   one whole block and a region never fragments
   ([docs/phase8_coalescing.md](docs/phase8_coalescing.md)), demo
   (`examples/coalescing_demo.cpp`), tests (`test_coalescing`)
-- [ ] Phase 9+ — allocation strategies,
+- [x] **Phase 9 — Allocation Strategies**: `my_free_list_best_fit` plus a
+  process-wide strategy selector (`my_set_strategy`/`my_get_strategy`,
+  `<mymalloc/strategy.h>`); first fit stays the default, best fit is opt-in,
+  and `my_malloc` reuses through the active strategy
+  ([docs/phase9_allocation_strategies.md](docs/phase9_allocation_strategies.md)),
+  demo (`examples/strategy_demo.cpp`), tests (`test_strategy`)
+- [ ] Phase 10+ — `calloc`, `realloc`,
   fragmentation, debugging, stress tests, benchmarks
 
 ## Engineering rules

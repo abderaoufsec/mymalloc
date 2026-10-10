@@ -1,11 +1,13 @@
-// The mymalloc allocator (Phases 5-8): my_malloc / my_free.
+// The mymalloc allocator (Phases 5-9): my_malloc / my_free.
 //
 // Model: every allocation gets its own raw region (page-rounded) holding one
-// block. Freed blocks are published to the free list and reused first-fit
-// (Phase 6); an oversized reused block is SPLIT so the request takes the
-// front and a worthwhile remainder stays listed (Phase 7); on free, a block
-// COALESCES with adjacent free neighbors so split/free cycles do not
-// fragment a region (Phase 8); no region release (Phase 12) yet. See
+// block. Freed blocks are published to the free list and reused by the active
+// placement strategy (Phase 9; default first fit since Phase 6, optional best
+// fit); an oversized reused block is SPLIT so the request takes the front and
+// a worthwhile remainder stays listed (Phase 7); on free, a block COALESCES
+// with adjacent free neighbors so split/free cycles do not fragment a region
+// (Phase 8); no region release (Phase 12) yet. See
+// docs/phase9_allocation_strategies.md for the strategy choice,
 // docs/phase8_coalescing.md for the merge policy, docs/phase7_splitting.md
 // for the split policy, docs/phase6_free_list.md for the reuse design and
 // docs/phase5_allocator.md for the base model and its limits.
@@ -14,10 +16,14 @@
 #include <mymalloc/free_list.h>
 #include <mymalloc/mymalloc.h>
 #include <mymalloc/raw_memory.h>
+#include <mymalloc/strategy.h>
 
 #include <cstdint>
 
 namespace {
+
+// Global placement strategy (Phase 9). Process-wide, not thread-safe.
+enum my_strategy g_strategy = MY_STRATEGY_FIRST_FIT;
 
 // Splitting a reused free block is only worthwhile when the leftover
 // remainder can stand on its own as a free-list member: a valid block
@@ -29,7 +35,30 @@ std::size_t min_split_remainder() {
     return my_block_user_offset() + sizeof(my_free_links);
 }
 
+// Picks the free block to reuse for a request needing `total` bytes (header
+// included) according to the active strategy. Returns NULL when nothing fits.
+my_block_header* select_fit(std::size_t total) {
+    switch (g_strategy) {
+    case MY_STRATEGY_BEST_FIT:
+        return my_free_list_best_fit(total);
+    case MY_STRATEGY_FIRST_FIT:
+    default:
+        return my_free_list_first_fit(total);
+    }
+}
+
 } // namespace
+
+void my_set_strategy(enum my_strategy strategy) {
+    // Ignore unknown values so a bogus cast cannot silently disable reuse.
+    if (strategy == MY_STRATEGY_FIRST_FIT || strategy == MY_STRATEGY_BEST_FIT) {
+        g_strategy = strategy;
+    }
+}
+
+enum my_strategy my_get_strategy(void) {
+    return g_strategy;
+}
 
 void* my_malloc(size_t size) {
     // Phase 5 decision: zero-sized requests fail loudly (C allows either).
@@ -48,12 +77,13 @@ void* my_malloc(size_t size) {
     }
     const std::size_t total = aligned_payload + offset; // alignment multiple
 
-    // Phase 6-7: reuse before acquiring — first fit over the free list. The
-    // chosen block is at least `total` bytes (header included). Phase 7: when
-    // the leftover remainder is large enough to be a useful free block, split
-    // the fit — return the front `total` bytes and keep the remainder listed;
-    // otherwise reuse the fit whole (Phase 6) and absorb the small slack.
-    my_block_header* const fit = my_free_list_first_fit(total);
+    // Phase 6-7: reuse before acquiring — fit over the free list using the
+    // active strategy (Phase 9; default first fit). The chosen block is at
+    // least `total` bytes (header included). Phase 7: when the leftover
+    // remainder is large enough to be a useful free block, split the fit —
+    // return the front `total` bytes and keep the remainder listed; otherwise
+    // reuse the fit whole (Phase 6) and absorb the small slack.
+    my_block_header* const fit = select_fit(total);
     if (fit != NULL) {
         const std::size_t remainder = fit->size - total; // total <= fit->size
         if (remainder >= min_split_remainder()) {

@@ -129,6 +129,24 @@ my_block_header* my_free_list_first_fit(size_t min_block_size) {
     return NULL;
 }
 
+my_block_header* my_free_list_best_fit(size_t min_block_size) {
+    if (min_block_size == 0) {
+        return NULL; // defensive: a real request always includes the header
+    }
+    my_block_header* best = NULL;
+    for (my_block_header* current = g_head; current != NULL;) {
+        if (current->size >= min_block_size) {
+            // Strictly-smaller wins; ties keep the earlier (lower-address) hit
+            // because the list is ascending, so we never replace on equality.
+            if (best == NULL || current->size < best->size) {
+                best = current;
+            }
+        }
+        current = next_member(current);
+    }
+    return best; // smallest adequate block, or NULL if none fits
+}
+
 my_block_header* my_free_list_head(void) {
     return g_head;
 }

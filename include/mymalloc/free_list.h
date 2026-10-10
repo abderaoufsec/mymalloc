@@ -56,6 +56,17 @@ int my_free_list_remove(my_block_header* block);
 // min_block_size == 0 returns NULL (defensive). Does not modify the list.
 my_block_header* my_free_list_first_fit(size_t min_block_size);
 
+// Best fit: the SMALLEST free block whose total size is >= min_block_size,
+// else NULL. Ties are broken by lowest address (the list is ascending, so the
+// first block of the winning size is the lowest-address one). Scans the whole
+// list; does not modify it. min_block_size == 0 returns NULL (defensive).
+//
+// Best fit minimizes the leftover (internal) slack per placement and so tends
+// to preserve large free blocks for large future requests — at the cost of a
+// full O(n) scan instead of first fit's early exit. See
+// docs/phase9_allocation_strategies.md for the tradeoff and the default.
+my_block_header* my_free_list_best_fit(size_t min_block_size);
+
 // Head of the list (lowest address) or NULL on empty.
 my_block_header* my_free_list_head(void);
 // Number of listed blocks (exact; maintained by insert/remove/clear).

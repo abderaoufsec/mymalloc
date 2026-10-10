@@ -39,3 +39,8 @@ target_link_libraries(split_demo PRIVATE mymalloc::mymalloc)
 # (see docs/phase8_coalescing.md).
 add_executable(coalescing_demo coalescing_demo.cpp)
 target_link_libraries(coalescing_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 9 experiment: first-fit vs best-fit placement strategies
+# (see docs/phase9_allocation_strategies.md).
+add_executable(strategy_demo strategy_demo.cpp)
+target_link_libraries(strategy_demo PRIVATE mymalloc::mymalloc)
