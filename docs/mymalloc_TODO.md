@@ -53,13 +53,13 @@
 - [x] Test allocation failure
 
 ## Phase 6 — Free List
-- [ ] Design free-list structure
-- [ ] Insert/remove free blocks
-- [ ] Search reusable blocks
-- [ ] Implement first-fit
-- [ ] Maintain list invariants
-- [ ] Test block reuse
-- [ ] Add consistency checks
+- [x] Design free-list structure
+- [x] Insert/remove free blocks
+- [x] Search reusable blocks
+- [x] Implement first-fit
+- [x] Maintain list invariants
+- [x] Test block reuse
+- [x] Add consistency checks
 
 ## Phase 7 — Splitting
 - [ ] Detect oversized free blocks

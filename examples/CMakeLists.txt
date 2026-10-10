@@ -24,3 +24,8 @@ target_link_libraries(block_demo PRIVATE mymalloc::mymalloc)
 # (see docs/phase5_allocator.md).
 add_executable(allocator_demo allocator_demo.cpp)
 target_link_libraries(allocator_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 6 experiment: free list structure, first-fit and block reuse
+# (see docs/phase6_free_list.md).
+add_executable(free_list_demo free_list_demo.cpp)
+target_link_libraries(free_list_demo PRIVATE mymalloc::mymalloc)

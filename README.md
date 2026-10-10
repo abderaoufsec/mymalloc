@@ -35,8 +35,8 @@ void* my_realloc(void* ptr, std::size_t new_size);
 ```
 
 Declared in [`include/mymalloc/mymalloc.h`](include/mymalloc/mymalloc.h)
-(C linkage, usable from C and C++). The implementation lands in Phase 5+;
-Phase 0 only ships the project foundation and version helpers.
+(C linkage, usable from C and C++). `my_malloc`/`my_free` are implemented
+(Phases 5-6); `my_calloc`/`my_realloc` land in Phases 10-11.
 
 ## Requirements
 
@@ -103,11 +103,21 @@ tree is warning-free.
 
 Tests are plain executables registered with CTest, using the tiny harness in
 [`tests/test_framework.hpp`](tests/test_framework.hpp) (no external
-dependencies). Current Phase 0 tests:
+dependencies). Current tests:
 
 - `test_version` — generated version metadata matches the exported helpers
 - `test_public_header` — public header exposes exactly the target API
   (compile-time signature checks, include-guard and `size_t` compatibility)
+- `test_memory_layout` — process address-space invariants (Phase 1)
+- `test_raw_memory` — page-rounded acquire/release, failures, repeated
+  cycles (Phase 2)
+- `test_alignment` — rounding boundaries, overflow, raw-region integration
+  (Phase 3)
+- `test_block` — header invariants, conversions, corruption detection
+  (Phase 4)
+- `test_allocator` — `my_malloc`/`my_free` contract: alignment, isolation,
+  failures (Phase 5)
+- `test_free_list` — free-list invariants, first-fit, reuse (Phase 6)
 
 Run everything with `ctest --preset debug`, or a single test:
 
@@ -174,7 +184,12 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   documented no-reuse limits deferred to Phases 6-8) in
   [docs/phase5_allocator.md](docs/phase5_allocator.md), demo
   (`examples/allocator_demo.cpp`), tests (`test_allocator`)
-- [ ] Phase 6+ — free list, splitting, coalescing, strategies,
+- [x] **Phase 6 — Free List**: intrusive address-ordered free list threaded
+  through free-block payloads with first-fit reuse in `my_malloc`,
+  double-free guarding in `my_free` and a machine-checked consistency audit
+  ([docs/phase6_free_list.md](docs/phase6_free_list.md)), demo
+  (`examples/free_list_demo.cpp`), tests (`test_free_list`)
+- [ ] Phase 7+ — splitting, coalescing, strategies,
   fragmentation, debugging, stress tests, benchmarks
 
 ## Engineering rules
