@@ -123,6 +123,8 @@ dependencies). Current tests:
   fragmentation reduction (Phase 8)
 - `test_strategy` — `my_free_list_best_fit`, strategy selector, end-to-end
   first-fit vs best-fit placement (Phase 9)
+- `test_calloc` — zero-init, multiplication-overflow rejection, reused-block
+  zeroing (Phase 10)
 
 Run everything with `ctest --preset debug`, or a single test:
 
@@ -211,7 +213,12 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   and `my_malloc` reuses through the active strategy
   ([docs/phase9_allocation_strategies.md](docs/phase9_allocation_strategies.md)),
   demo (`examples/strategy_demo.cpp`), tests (`test_strategy`)
-- [ ] Phase 10+ — `calloc`, `realloc`,
+- [x] **Phase 10 — `calloc`**: `my_calloc(count, size)` with pre-multiply
+  overflow rejection (`count > SIZE_MAX / size`) and explicit zeroing so
+  reused blocks (Phases 6-7) are not left stale
+  ([docs/phase10_calloc.md](docs/phase10_calloc.md)), demo
+  (`examples/calloc_demo.cpp`), tests (`test_calloc`)
+- [ ] Phase 11+ — `realloc`,
   fragmentation, debugging, stress tests, benchmarks
 
 ## Engineering rules

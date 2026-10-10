@@ -84,11 +84,11 @@
 - [x] Select/document default
 
 ## Phase 10 — `calloc`
-- [ ] Implement `my_calloc`
-- [ ] Check multiplication overflow
-- [ ] Zero memory
-- [ ] Test zero initialization
-- [ ] Test overflow cases
+- [x] Implement `my_calloc`
+- [x] Check multiplication overflow
+- [x] Zero memory
+- [x] Test zero initialization
+- [x] Test overflow cases
 
 ## Phase 11 — `realloc`
 - [ ] Define semantics

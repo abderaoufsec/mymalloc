@@ -44,3 +44,8 @@ target_link_libraries(coalescing_demo PRIVATE mymalloc::mymalloc)
 # (see docs/phase9_allocation_strategies.md).
 add_executable(strategy_demo strategy_demo.cpp)
 target_link_libraries(strategy_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 10 experiment: calloc — zero-init, overflow checks, reuse still zeroed
+# (see docs/phase10_calloc.md).
+add_executable(calloc_demo calloc_demo.cpp)
+target_link_libraries(calloc_demo PRIVATE mymalloc::mymalloc)

@@ -1,4 +1,4 @@
-// The mymalloc allocator (Phases 5-9): my_malloc / my_free.
+// The mymalloc allocator (Phases 5-10): my_malloc / my_free / my_calloc.
 //
 // Model: every allocation gets its own raw region (page-rounded) holding one
 // block. Freed blocks are published to the free list and reused by the active
@@ -19,6 +19,7 @@
 #include <mymalloc/strategy.h>
 
 #include <cstdint>
+#include <cstring>
 
 namespace {
 
@@ -185,4 +186,29 @@ void my_free(void* ptr) {
     // (checked above). Staying free-but-unlisted is leak-safe; corrupting
     // the list would not be.
     static_cast<void>(my_free_list_insert(merged));
+}
+
+void* my_calloc(size_t count, size_t size) {
+    // Consistent with my_malloc: a zero-element or zero-size array fails
+    // (documented decision; C leaves calloc(0, n) implementation-defined).
+    if (count == 0 || size == 0) {
+        return NULL;
+    }
+    // Overflow check on count * size BEFORE the multiply — the canonical
+    // calloc safety property. count != 0 here, so SIZE_MAX / count is defined.
+    if (count > SIZE_MAX / size) {
+        return NULL;
+    }
+    const size_t total = count * size;
+
+    void* pointer = my_malloc(total);
+    if (pointer == NULL) {
+        return NULL;
+    }
+    // Phase 10: guarantee the array is zero. A FRESH raw region arrives
+    // zero-filled by the OS, but REUSED free blocks (Phases 6-7) carry stale
+    // bytes, so calloc must zero explicitly rather than trust the mapping.
+    // Only the requested `total` bytes are defined by the C contract.
+    std::memset(pointer, 0, total);
+    return pointer;
 }
