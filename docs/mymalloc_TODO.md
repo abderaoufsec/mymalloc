@@ -91,15 +91,15 @@
 - [x] Test overflow cases
 
 ## Phase 11 — `realloc`
-- [ ] Define semantics
-- [ ] Handle `nullptr`
-- [ ] Handle zero size
-- [ ] Shrink in place when possible
-- [ ] Expand in place when possible
-- [ ] Move when necessary
-- [ ] Preserve data
-- [ ] Handle allocation failure
-- [ ] Comprehensive tests
+- [x] Define semantics
+- [x] Handle `nullptr`
+- [x] Handle zero size
+- [x] Shrink in place when possible
+- [x] Expand in place when possible
+- [x] Move when necessary
+- [x] Preserve data
+- [x] Handle allocation failure
+- [x] Comprehensive tests
 
 ## Phase 12 — Heap Management
 - [ ] Track managed regions

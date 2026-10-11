@@ -49,3 +49,8 @@ target_link_libraries(strategy_demo PRIVATE mymalloc::mymalloc)
 # (see docs/phase10_calloc.md).
 add_executable(calloc_demo calloc_demo.cpp)
 target_link_libraries(calloc_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 11 experiment: realloc — in-place fits/absorb, moves, failure contract
+# (see docs/phase11_realloc.md).
+add_executable(realloc_demo realloc_demo.cpp)
+target_link_libraries(realloc_demo PRIVATE mymalloc::mymalloc)

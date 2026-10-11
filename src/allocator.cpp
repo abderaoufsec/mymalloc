@@ -1,4 +1,5 @@
-// The mymalloc allocator (Phases 5-10): my_malloc / my_free / my_calloc.
+// The mymalloc allocator (Phases 5-11): my_malloc / my_free / my_calloc /
+// my_realloc.
 //
 // Model: every allocation gets its own raw region (page-rounded) holding one
 // block. Freed blocks are published to the free list and reused by the active
@@ -6,8 +7,10 @@
 // fit); an oversized reused block is SPLIT so the request takes the front and
 // a worthwhile remainder stays listed (Phase 7); on free, a block COALESCES
 // with adjacent free neighbors so split/free cycles do not fragment a region
-// (Phase 8); no region release (Phase 12) yet. See
-// docs/phase9_allocation_strategies.md for the strategy choice,
+// (Phase 8); my_realloc resizes in place when the block fits or can absorb its
+// free upper neighbor, and moves with a bounded copy otherwise (Phase 11); no
+// region release (Phase 12) yet. See docs/phase11_realloc.md for the resize
+// design, docs/phase9_allocation_strategies.md for the strategy choice,
 // docs/phase8_coalescing.md for the merge policy, docs/phase7_splitting.md
 // for the split policy, docs/phase6_free_list.md for the reuse design and
 // docs/phase5_allocator.md for the base model and its limits.
@@ -46,6 +49,35 @@ my_block_header* select_fit(std::size_t total) {
     default:
         return my_free_list_first_fit(total);
     }
+}
+
+// Marks `block` free, coalesces it with physically adjacent FREE neighbors,
+// and publishes the single lowest-address survivor to the free list. This is
+// the Phase 8 policy shared by my_free and my_realloc's in-place paths: the
+// block may be freshly freed (my_free) or freshly CARVED out of an allocated
+// block (my_realloc shrinking/splitting a tail), and in both cases its upper
+// neighbor can already be free (a Phase 7 remainder), which must be merged in
+// to keep the no-adjacent-free-blocks invariant. The freed block is not
+// listed yet, so only its neighbors need un-listing; insert can only fail on
+// a header too broken to validate, and staying free-but-unlisted is
+// leak-safe (see docs/phase8_coalescing.md).
+void coalesce_and_publish(my_block_header* block) {
+    block->free = 1;
+    my_block_header* merged = block;
+
+    my_block_header* const lower = my_block_prev(merged);
+    if (lower != NULL && my_block_is_free(lower) == 1 && my_free_list_remove(lower) == 1 &&
+        my_block_merge(lower, merged) == 1) {
+        merged = lower; // survivor keeps the lowest address
+    }
+
+    my_block_header* const upper = my_block_next(merged);
+    if (upper != NULL && my_block_is_free(upper) == 1 && my_free_list_remove(upper) == 1 &&
+        my_block_merge(merged, upper) == 1) {
+        // `merged` now spans the upper neighbor too.
+    }
+
+    static_cast<void>(my_free_list_insert(merged));
 }
 
 } // namespace
@@ -162,30 +194,11 @@ void my_free(void* ptr) {
 
     // Phase 8: coalesce with physically adjacent FREE neighbors before
     // publishing, so the split/free cycles of Phases 6-7 do not fragment a
-    // region into many small free blocks. The freed block is not listed yet,
-    // so only its neighbors need un-listing; the survivor keeps the LOWEST
-    // address (the address-ordered list expects that) and is inserted once.
-    // The earlier my_block_valid(block) guarantees a consistent physical
-    // chain, so a neighbor that un-lists cleanly also merges cleanly.
-    block->free = 1;
-    my_block_header* merged = block;
-
-    my_block_header* const lower = my_block_prev(merged);
-    if (lower != NULL && my_block_is_free(lower) == 1 && my_free_list_remove(lower) == 1 &&
-        my_block_merge(lower, merged) == 1) {
-        merged = lower; // survivor keeps the lowest address
-    }
-
-    my_block_header* const upper = my_block_next(merged);
-    if (upper != NULL && my_block_is_free(upper) == 1 && my_free_list_remove(upper) == 1 &&
-        my_block_merge(merged, upper) == 1) {
-        // `merged` now spans the upper neighbor too.
-    }
-
-    // Defensive: insert can only fail on a header too broken to validate
-    // (checked above). Staying free-but-unlisted is leak-safe; corrupting
-    // the list would not be.
-    static_cast<void>(my_free_list_insert(merged));
+    // region into many small free blocks. The earlier my_block_valid(block)
+    // guarantees a consistent physical chain, so a neighbor that un-lists
+    // cleanly also merges cleanly (helper defined above; shared with
+    // my_realloc since Phase 11).
+    coalesce_and_publish(block);
 }
 
 void* my_calloc(size_t count, size_t size) {
@@ -211,4 +224,104 @@ void* my_calloc(size_t count, size_t size) {
     // Only the requested `total` bytes are defined by the C contract.
     std::memset(pointer, 0, total);
     return pointer;
+}
+
+void* my_realloc(void* ptr, size_t new_size) {
+    // realloc(NULL, new_size) is defined to be malloc(new_size).
+    if (ptr == NULL) {
+        return my_malloc(new_size);
+    }
+    // realloc(ptr, 0) frees the block and returns NULL — consistent with
+    // my_malloc(0) failing loudly (documented decision; C leaves realloc(p, 0)
+    // implementation-defined, and this choice also guarantees a NULL return,
+    // which every portable caller must already handle).
+    if (new_size == 0) {
+        my_free(ptr);
+        return NULL;
+    }
+
+    // Validation mirrors my_free: a pointer we could not have produced cannot
+    // be resized, so refuse loudly instead of trusting its header (full
+    // foreign-pointer validation is Phase 14). A block that is already FREE
+    // (a dangling pointer) is refused too — handing free memory back as a
+    // live allocation would be worse than returning NULL.
+    my_block_header* block = my_user_to_block(ptr);
+    if (my_block_valid(block) != 1) {
+        return NULL;
+    }
+    if (my_block_is_free(block) == 1) {
+        return NULL;
+    }
+
+    // Size computation identical to my_malloc: align the payload, add the
+    // header, both overflow-checked. An impossible request fails here WITHOUT
+    // touching the original block — the C requirement for realloc failure is
+    // that the caller's pointer stays valid and unchanged.
+    std::size_t aligned_payload = 0;
+    if (my_align_up_size(new_size, my_default_alignment(), &aligned_payload) != 1) {
+        return NULL;
+    }
+    const std::size_t offset = my_block_user_offset();
+    if (aligned_payload > SIZE_MAX - offset) {
+        return NULL;
+    }
+    const std::size_t total = aligned_payload + offset;
+
+    // --- fits: shrink, same size, or grow within existing slack ------------
+    // total <= block->size, so the whole resize happens at the header: the
+    // pointer (and every prefix byte the caller holds) stays put.
+    if (total <= block->size) {
+        const std::size_t remainder = block->size - total;
+        if (remainder >= min_split_remainder()) {
+            // Carve the slack off as a new block and publish it through the
+            // same coalescing path as my_free. The block being split is
+            // ALLOCATED, so the carve-out inherits that state and must be
+            // flipped to free; its upper neighbor may already be free (a
+            // Phase 7 remainder), and two adjacent free blocks would break
+            // the Phase 8 invariant the coalescer maintains.
+            if (my_block_split(block, total) == 1) {
+                coalesce_and_publish(block->next);
+            }
+        }
+        // Below the split threshold the slack stays internal (Phase 7
+        // policy): slightly oversized allocation beats an unusable sliver.
+        return ptr; // same pointer, prefix data preserved
+    }
+
+    // --- grow in place: absorb a sufficient FREE upper neighbor ------------
+    // Only the block above can extend this one without moving the pointer
+    // (absorbing the block below would relocate the payload). Sufficiency is
+    // checked BEFORE any mutation: total > block->size here, so the
+    // subtraction cannot underflow, and an insufficient (or absent) neighbor
+    // falls through to the move path with all metadata untouched. The
+    // remove-then-merge chain mirrors my_free: a neighbor that un-lists
+    // cleanly also merges cleanly.
+    my_block_header* const upper = my_block_next(block);
+    if (upper != NULL && my_block_is_free(upper) == 1 &&
+        upper->size >= total - block->size && // enough bytes together
+        my_free_list_remove(upper) == 1 && my_block_merge(block, upper) == 1) {
+        // block now spans the absorbed neighbor (and stays allocated).
+        const std::size_t remainder = block->size - total;
+        if (remainder >= min_split_remainder()) {
+            if (my_block_split(block, total) == 1) {
+                coalesce_and_publish(block->next); // give the tail back
+            }
+        }
+        return ptr; // same pointer, prefix data preserved
+    }
+
+    // --- move: allocate fresh, copy the overlap, free the old block --------
+    // Neither the block nor its neighborhood could satisfy the request. A
+    // failed my_malloc returns NULL with the ORIGINAL block untouched (the C
+    // requirement); on success only the overlap min(old payload, new size)
+    // bytes carries over — exactly what the contract promises the caller.
+    void* fresh = my_malloc(new_size);
+    if (fresh == NULL) {
+        return NULL; // original block untouched
+    }
+    const std::size_t old_payload = my_block_payload_size(block);
+    const std::size_t copy = old_payload < new_size ? old_payload : new_size;
+    std::memcpy(fresh, ptr, copy);
+    my_free(ptr); // old block rejoins the free list (coalesced, Phase 8)
+    return fresh;
 }

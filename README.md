@@ -35,8 +35,9 @@ void* my_realloc(void* ptr, std::size_t new_size);
 ```
 
 Declared in [`include/mymalloc/mymalloc.h`](include/mymalloc/mymalloc.h)
-(C linkage, usable from C and C++). `my_malloc`/`my_free` are implemented
-(Phases 5-6); `my_calloc`/`my_realloc` land in Phases 10-11.
+(C linkage, usable from C and C++). All four are implemented
+(`my_malloc`/`my_free` in Phases 5-6, `my_calloc` in Phase 10,
+`my_realloc` in Phase 11).
 
 ## Requirements
 
@@ -125,6 +126,8 @@ dependencies). Current tests:
   first-fit vs best-fit placement (Phase 9)
 - `test_calloc` — zero-init, multiplication-overflow rejection, reused-block
   zeroing (Phase 10)
+- `test_realloc` — in-place resize (fits/absorb), moves, failure leaves the
+  original intact, data preservation (Phase 11)
 
 Run everything with `ctest --preset debug`, or a single test:
 
@@ -218,8 +221,13 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   reused blocks (Phases 6-7) are not left stale
   ([docs/phase10_calloc.md](docs/phase10_calloc.md)), demo
   (`examples/calloc_demo.cpp`), tests (`test_calloc`)
-- [ ] Phase 11+ — `realloc`,
-  fragmentation, debugging, stress tests, benchmarks
+- [x] **Phase 11 — `realloc`**: `my_realloc` resizes in place when the request
+  fits the block or can absorb its free upper neighbor (coalescing the split
+  tail), otherwise moves with a bounded overlap copy; allocation failure
+  returns `NULL` with the original block untouched
+  ([docs/phase11_realloc.md](docs/phase11_realloc.md)), demo
+  (`examples/realloc_demo.cpp`), tests (`test_realloc`)
+- [ ] Phase 12+ — fragmentation, debugging, stress tests, benchmarks
 
 ## Engineering rules
 
