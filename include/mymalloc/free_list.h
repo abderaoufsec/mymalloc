@@ -78,8 +78,10 @@ size_t my_free_list_count(void);
 // walk is bounded by the count, so corruption cannot loop it forever.
 int my_free_list_valid(void);
 
-// Drops the list WITHOUT touching the blocks — teardown for wholesale region
-// release (Phase 12) and test cleanup. Blocks remain free but unlisted.
+// Drops the list WITHOUT touching the blocks — test cleanup and teardown
+// for handcrafted free-list states. Blocks remain free but unlisted; region
+// bookkeeping (Phase 12) is unaffected, and fully-free TRACKED regions are
+// still reclaimed by the allocator's scavenge-on-acquire path.
 void my_free_list_clear(void);
 
 #endif // MYMALLOC_FREE_LIST_H

@@ -145,34 +145,46 @@ int main() {
     // Same-size allocation reuses the freed block: no new region needed.
     void* p2 = my_malloc(64);
     MYMALLOC_CHECK(p2 == p1); // deterministic first fit over the singleton
-    MYMALLOC_CHECK(my_free_list_count() == 0);
+    // The 4096-byte fit was split: a 96-byte front is handed out and the
+    // worthwhile remainder is published back to the list (Phase 7).
+    MYMALLOC_CHECK(my_free_list_count() == 1);
     MYMALLOC_CHECK(my_block_is_free(my_user_to_block(p2)) == 0);
     MYMALLOC_CHECK(my_block_valid(my_user_to_block(p2)) == 1);
 
     // A too-small free list entry is bypassed by a large request.
     my_free(p2);
     MYMALLOC_CHECK(my_free_list_count() == 1);
-    void* bigp = my_malloc(2 * 1024 * 1024); // 2 MiB > the 96-byte block
-    MYMALLOC_CHECK(bigp != nullptr);
-    MYMALLOC_CHECK(my_free_list_count() == 1); // small block still listed
-    my_free(bigp);
-    MYMALLOC_CHECK(my_free_list_count() == 2);
 
-    // Double free is a guarded no-op: no second list entry appears.
+    // Double free is a guarded no-op — while the block's region is still
+    // mapped: no second list entry appears.
     my_free(p1); // p1 == p2, whose block is already free
-    MYMALLOC_CHECK(my_free_list_count() == 2);
+    MYMALLOC_CHECK(my_free_list_count() == 1);
     MYMALLOC_CHECK(my_free_list_valid() == 1);
 
-    // Mixed-size allocations drain and refill the list deterministically.
-    void* x = my_malloc(16);  // always reuses the 96-byte listed block
-    void* y = my_malloc(128); // 160 bytes: reuses or takes a fresh region
-    void* z = my_malloc(32);  // 64 bytes: reuses whichever small block remains
+    // The fresh 2 MiB acquisition first reclaims the now-fully-free small
+    // region (Phase 12 scavenge-on-acquire), leaving the list empty. From
+    // here on p1/p2 DANGLING: my_malloc does not validate foreign or
+    // dangling pointers yet (Phase 14), so the test must not touch them.
+    void* bigp = my_malloc(2 * 1024 * 1024); // 2 MiB > the listed block
+    MYMALLOC_CHECK(bigp != nullptr);
+    MYMALLOC_CHECK(my_free_list_count() == 0); // the small region was reclaimed
+    my_free(bigp);
+    // Freeing does NOT shrink the heap (Phase 12): the 2 MiB block stays
+    // listed until the next fresh acquisition scavenges it.
+    MYMALLOC_CHECK(my_free_list_count() == 1);
+
+    // Mixed-size allocations all reuse the listed 2 MiB block (the only free
+    // block): each splits its front off the same region, and the three frees
+    // coalesce straight back into one whole-region free block.
+    void* x = my_malloc(16);
+    void* y = my_malloc(128);
+    void* z = my_malloc(32);
     MYMALLOC_CHECK(x != nullptr && y != nullptr && z != nullptr);
     my_free(y);
     my_free(x);
     my_free(z);
-    // The two listed blocks came back, plus the one fresh region required.
-    MYMALLOC_CHECK(my_free_list_count() == 3);
+    // One coalesced free block again — no fresh region was required.
+    MYMALLOC_CHECK(my_free_list_count() == 1);
     MYMALLOC_CHECK(my_free_list_valid() == 1);
 
     // Long reuse cycle: repeated same-size alloc/free keeps the audit green.
@@ -192,5 +204,5 @@ int main() {
             region = nullptr;
         }
     }
-    return 0;
+    MYMALLOC_TEST_MAIN("free_list");
 }

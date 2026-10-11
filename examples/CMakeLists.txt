@@ -54,3 +54,8 @@ target_link_libraries(calloc_demo PRIVATE mymalloc::mymalloc)
 # (see docs/phase11_realloc.md).
 add_executable(realloc_demo realloc_demo.cpp)
 target_link_libraries(realloc_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 12 experiment: region tracking, multi-region, guarded release,
+# scavenge-on-acquire (see docs/phase12_heap_management.md).
+add_executable(regions_demo regions_demo.cpp)
+target_link_libraries(regions_demo PRIVATE mymalloc::mymalloc)

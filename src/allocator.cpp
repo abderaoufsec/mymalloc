@@ -8,8 +8,11 @@
 // a worthwhile remainder stays listed (Phase 7); on free, a block COALESCES
 // with adjacent free neighbors so split/free cycles do not fragment a region
 // (Phase 8); my_realloc resizes in place when the block fits or can absorb its
-// free upper neighbor, and moves with a bounded copy otherwise (Phase 11); no
-// region release (Phase 12) yet. See docs/phase11_realloc.md for the resize
+// free upper neighbor, and moves with a bounded copy otherwise (Phase 11);
+// every acquired raw region is TRACKED, and fully-free regions are returned
+// to the OS just before fresh memory is acquired (Phase 12,
+// scavenge-on-acquire). See docs/phase12_heap_management.md for the region
+// ownership model and docs/phase11_realloc.md for the resize
 // design, docs/phase9_allocation_strategies.md for the strategy choice,
 // docs/phase8_coalescing.md for the merge policy, docs/phase7_splitting.md
 // for the split policy, docs/phase6_free_list.md for the reuse design and
@@ -19,6 +22,7 @@
 #include <mymalloc/free_list.h>
 #include <mymalloc/mymalloc.h>
 #include <mymalloc/raw_memory.h>
+#include <mymalloc/regions.h>
 #include <mymalloc/strategy.h>
 
 #include <cstdint>
@@ -149,13 +153,20 @@ void* my_malloc(size_t size) {
         return NULL;
     }
 
-    // 3. Acquire memory when needed (fails -> NULL).
+    // 3. Reclaim fully-free regions before growing (Phase 12). Free memory
+    //    lives on the free list; regions are only returned to the OS here —
+    //    when they could not satisfy the request after all — so hot
+    //    alloc/free paths never thrash mmap/munmap. Blocks with any live
+    //    allocation keep their region (see docs/phase12_heap_management.md).
+    static_cast<void>(my_regions_release_free());
+
+    // 4. Acquire memory when needed (fails -> NULL).
     void* region = my_raw_acquire(total);
     if (region == NULL) {
         return NULL;
     }
 
-    // 4. Use the whole region as one block; trim if a platform's page size
+    // 5. Use the whole region as one block; trim if a platform's page size
     //    were not an alignment multiple (never true on x86/ARM, but safe).
     std::size_t block_bytes = region_bytes;
     if ((block_bytes % my_default_alignment()) != 0) {
@@ -164,11 +175,19 @@ void* my_malloc(size_t size) {
 
     auto* block = reinterpret_cast<my_block_header*>(region);
     if (my_block_init(block, block_bytes, 0 /* allocated */, NULL, NULL) != 1) {
-        my_raw_release(region, total); // cannot happen; defensive
+        my_raw_release(region, region_bytes); // cannot happen; defensive
         return NULL;
     }
 
-    // 5. Return the aligned payload pointer.
+    // 6. Adopt ownership of the region (Phase 12), then return the payload.
+    //    Tracking happens only after the block is initialized, so a region
+    //    that was never tracked is never touched by the release paths. If
+    //    the registry itself cannot grow, the fresh region is dropped on the
+    //    spot and the request fails loudly instead of leaking.
+    if (my_region_track(region, region_bytes) != 1) {
+        my_raw_release(region, region_bytes);
+        return NULL;
+    }
     return my_block_to_user(block);
 }
 

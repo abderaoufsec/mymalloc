@@ -102,12 +102,12 @@
 - [x] Comprehensive tests
 
 ## Phase 12 — Heap Management
-- [ ] Track managed regions
-- [ ] Support multiple regions
-- [ ] Safely release eligible regions
-- [ ] Prevent invalid unmapping
-- [ ] Test long allocation/free cycles
-- [ ] Document ownership
+- [x] Track managed regions
+- [x] Support multiple regions
+- [x] Safely release eligible regions
+- [x] Prevent invalid unmapping
+- [x] Test long allocation/free cycles
+- [x] Document ownership
 
 ## Phase 13 — Fragmentation
 - [ ] Define internal/external fragmentation

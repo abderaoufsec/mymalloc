@@ -128,6 +128,8 @@ dependencies). Current tests:
   zeroing (Phase 10)
 - `test_realloc` — in-place resize (fits/absorb), moves, failure leaves the
   original intact, data preservation (Phase 11)
+- `test_regions` — region tracking, multi-region scavenge-on-acquire, guarded
+  release (invalid-unmap refusal), long-cycle registry bounds (Phase 12)
 
 Run everything with `ctest --preset debug`, or a single test:
 
@@ -227,7 +229,14 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   returns `NULL` with the original block untouched
   ([docs/phase11_realloc.md](docs/phase11_realloc.md)), demo
   (`examples/realloc_demo.cpp`), tests (`test_realloc`)
-- [ ] Phase 12+ — fragmentation, debugging, stress tests, benchmarks
+- [x] **Phase 12 — Heap Management**: every raw region `my_malloc` acquires is
+  tracked in a growable registry (`<mymalloc/regions.h>`); fully-free regions
+  are returned to the OS scavenge-on-acquire (`my_free` never shrinks the
+  heap), and four guardrails (exact membership, exact extent, structural
+  full-freeness, unlist-before-unmap) make invalid unmapping impossible
+  ([docs/phase12_heap_management.md](docs/phase12_heap_management.md)), demo
+  (`examples/regions_demo.cpp`), tests (`test_regions`)
+- [ ] Phase 13+ — fragmentation stats, debugging, stress tests, benchmarks
 
 ## Engineering rules
 
