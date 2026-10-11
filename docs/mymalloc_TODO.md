@@ -110,12 +110,12 @@
 - [x] Document ownership
 
 ## Phase 13 — Fragmentation
-- [ ] Define internal/external fragmentation
-- [ ] Add allocator statistics
-- [ ] Track requested/allocated/free bytes
-- [ ] Track block counts
-- [ ] Measure fragmentation
-- [ ] Add fragmentation workloads
+- [x] Define internal/external fragmentation
+- [x] Add allocator statistics
+- [x] Track requested/allocated/free bytes
+- [x] Track block counts
+- [x] Measure fragmentation
+- [x] Add fragmentation workloads
 
 ## Phase 14 — Debugging
 - [ ] Validate pointers

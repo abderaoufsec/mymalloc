@@ -236,7 +236,15 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   full-freeness, unlist-before-unmap) make invalid unmapping impossible
   ([docs/phase12_heap_management.md](docs/phase12_heap_management.md)), demo
   (`examples/regions_demo.cpp`), tests (`test_regions`)
-- [ ] Phase 13+ — fragmentation stats, debugging, stress tests, benchmarks
+- [x] **Phase 13 — Fragmentation**: `my_heap_stats_collect` (`<mymalloc/stats.h>`)
+  walks the tracked regions once and derives requested/allocated/free bytes,
+  block counts, and internal (`payload − requested`) vs external
+  (`free − largest_free`) fragmentation as bytes and permille ratios, with a
+  collect contract that refuses an inconsistent heap; the block header records
+  each live request so no allocation behaviour changes
+  ([docs/phase13_fragmentation.md](docs/phase13_fragmentation.md)), demo
+  (`examples/fragmentation_demo.cpp`), tests (`test_fragmentation`)
+- [ ] Phase 14+ — debugging, stress tests, benchmarks
 
 ## Engineering rules
 

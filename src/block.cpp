@@ -64,6 +64,7 @@ int my_block_init(my_block_header* base, size_t size, int is_free, my_block_head
     base->free = is_free;
     base->prev = prev;
     base->next = next;
+    base->requested = 0; // no live request recorded yet (Phase 13)
     return 1;
 }
 
@@ -99,6 +100,7 @@ int my_block_split(my_block_header* block, size_t front_size) {
     // and the old upper neighbor.
     remainder->size = remainder_size;
     remainder->free = block->free;
+    remainder->requested = 0; // fresh header: only the front may carry a request
     remainder->prev = block;
     remainder->next = old_next;
     if (old_next != NULL) {
@@ -148,6 +150,28 @@ int my_block_is_free(const my_block_header* block) {
     return block == NULL ? 0 : block->free;
 }
 
+void my_block_note_requested(my_block_header* block, size_t bytes) {
+    if (block == NULL) {
+        return;
+    }
+    // The field holds 31 bits exactly; at or above the sentinel the exact
+    // request is given up and the payload becomes the upper bound
+    // (docs/phase13_fragmentation.md documents the approximation).
+    block->requested = bytes < MY_BLOCK_REQUESTED_HUGE ? static_cast<unsigned int>(bytes)
+                                                       : MY_BLOCK_REQUESTED_HUGE;
+}
+
+size_t my_block_requested(const my_block_header* block) {
+    if (block == NULL) {
+        return 0;
+    }
+    const size_t payload = my_block_payload_size(block);
+    if (block->requested == MY_BLOCK_REQUESTED_HUGE || block->requested > payload) {
+        return payload; // unknown-exact or corrupt: clamp to the usable bytes
+    }
+    return block->requested;
+}
+
 int my_block_valid(const my_block_header* block) {
     if (block == NULL) {
         return 0;
@@ -161,6 +185,13 @@ int my_block_valid(const my_block_header* block) {
         return 0;
     }
     if (block->free != 0 && block->free != 1) {
+        return 0;
+    }
+    // Phase 13: an allocated block must record a request that fits its
+    // payload (the HUGE sentinel means "exact value unknown" and fits by
+    // definition). Free blocks ignore the field entirely.
+    if (block->free == 0 && block->requested != MY_BLOCK_REQUESTED_HUGE &&
+        block->requested > block->size - offset) {
         return 0;
     }
     if (block->size > UINTPTR_MAX - address) {

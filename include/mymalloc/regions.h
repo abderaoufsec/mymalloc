@@ -59,6 +59,13 @@ int my_region_find(const void* addr, my_region* out);
 // track/release).
 size_t my_region_count(void);
 
+// Copies the entry at zero-based `index` into *out. Returns 1 on success, 0
+// when out is NULL or index is out of range. Entries are packed but
+// swap-remove makes the ORDER unspecified — iteration must not assume
+// address order. This exists so diagnostics can walk every tracked region
+// (Phase 13's statistics collector, Phase 14's consistency checker).
+int my_region_at(size_t index, my_region* out);
+
 // Releases the tracked region that STARTS at exactly `base`, provided
 // `bytes` matches the tracked extent and the region is fully free (see the
 // guardrail list above). Un-lists the block, unmaps the pages and stops

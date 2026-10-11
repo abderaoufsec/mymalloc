@@ -5,7 +5,7 @@
 //
 //   block start                 user pointer
 //   v                           v
-//   [ size | free | prev | next ][ payload ... ]  ... [ next block header ]
+//   [ size | prev | next | free | requested ][ payload ... ] ... [ next hdr ]
 //   <--------- size ----------->
 //
 // - `size` is the TOTAL block size in bytes (header + payload), always a
@@ -14,6 +14,10 @@
 //   (NULL at region edges) — this gives O(1) neighbor discovery for
 //   coalescing (see docs/phase4_block_metadata.md for the tradeoff).
 // - `free` is exactly 0 (allocated) or 1 (free).
+// - `requested` (Phase 13) records the caller's live request so internal
+//   fragmentation (payload - request) can be measured; it reuses the padding
+//   bytes that follow `free` on LP64, so the header is STILL 32 bytes on
+//   x86-64. Meaningful only while the block is allocated.
 //
 // my_block_valid() verifies all invariants; it is ordered so that
 // misaligned or structurally impossible pointers are rejected WITHOUT
@@ -26,10 +30,11 @@
 typedef struct my_block_header my_block_header;
 
 struct my_block_header {
-    size_t size;           // total bytes incl. header; multiple of alignment
-    my_block_header* prev; // adjacent block at a lower address, or NULL
-    my_block_header* next; // adjacent block at a higher address, or NULL
-    int free;              // 1 = free, 0 = allocated
+    size_t size;            // total bytes incl. header; multiple of alignment
+    my_block_header* prev;  // adjacent block at a lower address, or NULL
+    my_block_header* next;  // adjacent block at a higher address, or NULL
+    int free;               // 1 = free, 0 = allocated
+    unsigned int requested; // live request (Phase 13); 0 for free blocks
 };
 
 // Bytes from a block start to its user pointer:
@@ -54,6 +59,27 @@ size_t my_block_payload_size(const my_block_header* block);
 // - is_free is not 0 or 1.
 int my_block_init(my_block_header* base, size_t size, int is_free, my_block_header* prev,
                   my_block_header* next);
+
+// Sentinel stored in my_block_header::requested when the live request did not
+// fit the field's exact range (see my_block_note_requested): the exact value
+// is then unknown and the payload is treated as the request.
+#define MY_BLOCK_REQUESTED_HUGE 0x80000000u
+
+// Records `bytes` as the caller's live request for `block` (Phase 13, so the
+// statistics collector can measure internal fragmentation). The allocator
+// calls this whenever a block becomes allocated for a known request
+// (my_malloc — including my_calloc through it — and my_realloc's in-place
+// paths). Requests < MY_BLOCK_REQUESTED_HUGE are stored exactly; larger ones
+// store the HUGE sentinel. Only meaningful while the block is allocated;
+// free blocks ignore the field. NULL-safe no-op.
+void my_block_note_requested(my_block_header* block, size_t bytes);
+
+// The recorded live request of a block: the exact value stored by
+// my_block_note_requested, or my_block_payload_size(block) when the request
+// was huge (sentinel) or the field is corrupt/oversized (clamped
+// defensively, so payload - my_block_requested() can never underflow).
+// Returns 0 for NULL.
+size_t my_block_requested(const my_block_header* block);
 
 // Splits `block` into two physically adjacent blocks: a FRONT of `front_size`
 // bytes that keeps `block`'s address, `prev`, and free state, and a REMAINDER
@@ -96,7 +122,9 @@ int my_block_is_free(const my_block_header* block);
 // Verifies every metadata invariant documented in
 // docs/phase4_block_metadata.md. Misaligned or NULL pointers are rejected
 // without dereferencing. Link pointers are trusted to point to readable
-// memory (full adversarial-pointer validation is Phase 14).
+// memory (full adversarial-pointer validation is Phase 14). Phase 13 adds
+// one more invariant: an ALLOCATED block must record a request that fits its
+// payload (free blocks ignore the requested field).
 int my_block_valid(const my_block_header* block);
 
 #endif // MYMALLOC_BLOCK_H

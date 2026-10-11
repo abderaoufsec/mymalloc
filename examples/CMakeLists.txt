@@ -59,3 +59,9 @@ target_link_libraries(realloc_demo PRIVATE mymalloc::mymalloc)
 # scavenge-on-acquire (see docs/phase12_heap_management.md).
 add_executable(regions_demo regions_demo.cpp)
 target_link_libraries(regions_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 13 experiment: fragmentation statistics — requested/allocated/free
+# bytes, block counts, internal vs external fragmentation (see
+# docs/phase13_fragmentation.md).
+add_executable(fragmentation_demo fragmentation_demo.cpp)
+target_link_libraries(fragmentation_demo PRIVATE mymalloc::mymalloc)

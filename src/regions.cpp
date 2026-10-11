@@ -142,6 +142,14 @@ size_t my_region_count(void) {
     return g_count;
 }
 
+int my_region_at(size_t index, my_region* out) {
+    if (out == NULL || index >= g_count) {
+        return 0;
+    }
+    *out = g_regions[index]; // copy: the table may move on growth
+    return 1;
+}
+
 int my_region_release(void* base, size_t bytes) {
     // Guardrail 1: only an EXACTLY tracked base may be released — a pointer
     // from the middle of a region, or from a foreign raw mapping, is

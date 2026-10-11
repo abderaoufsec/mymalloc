@@ -1,4 +1,4 @@
-// The mymalloc allocator (Phases 5-11): my_malloc / my_free / my_calloc /
+// The mymalloc allocator (Phases 5-13): my_malloc / my_free / my_calloc /
 // my_realloc.
 //
 // Model: every allocation gets its own raw region (page-rounded) holding one
@@ -11,8 +11,11 @@
 // free upper neighbor, and moves with a bounded copy otherwise (Phase 11);
 // every acquired raw region is TRACKED, and fully-free regions are returned
 // to the OS just before fresh memory is acquired (Phase 12,
-// scavenge-on-acquire). See docs/phase12_heap_management.md for the region
-// ownership model and docs/phase11_realloc.md for the resize
+// scavenge-on-acquire). Every allocation path records the exact request in
+// the block header (Phase 13) so my_heap_stats_collect can measure internal
+// fragmentation. See docs/phase12_heap_management.md for the region
+// ownership model and docs/phase13_fragmentation.md for the statistics,
+// and docs/phase11_realloc.md for the resize
 // design, docs/phase9_allocation_strategies.md for the strategy choice,
 // docs/phase8_coalescing.md for the merge policy, docs/phase7_splitting.md
 // for the split policy, docs/phase6_free_list.md for the reuse design and
@@ -134,6 +137,7 @@ void* my_malloc(size_t size) {
                 return NULL; // defensive: the scan just found it listed
             }
             fit->free = 0;                                // front is now allocated
+            my_block_note_requested(fit, size);           // Phase 13: record the live request
             tail->free = 1;                               // remainder stays free (explicit)
             static_cast<void>(my_free_list_insert(tail)); // remainder reusable
             return my_block_to_user(fit);
@@ -142,7 +146,8 @@ void* my_malloc(size_t size) {
         if (my_free_list_remove(fit) != 1) {
             return NULL; // cannot happen: the scan just found it listed
         }
-        fit->free = 0; // allocated again
+        fit->free = 0;                      // allocated again
+        my_block_note_requested(fit, size); // Phase 13: record the live request
         return my_block_to_user(fit);
     }
 
@@ -178,6 +183,8 @@ void* my_malloc(size_t size) {
         my_raw_release(region, region_bytes); // cannot happen; defensive
         return NULL;
     }
+    my_block_note_requested(block, size); // Phase 13: the region is this
+    // request's block; record the exact ask for the fragmentation statistics
 
     // 6. Adopt ownership of the region (Phase 12), then return the payload.
     //    Tracking happens only after the block is initialized, so a region
@@ -290,6 +297,9 @@ void* my_realloc(void* ptr, size_t new_size) {
     // total <= block->size, so the whole resize happens at the header: the
     // pointer (and every prefix byte the caller holds) stays put.
     if (total <= block->size) {
+        // Phase 13: record the new live request BEFORE the optional split, so
+        // the header stays self-consistent (requested <= payload) throughout.
+        my_block_note_requested(block, new_size);
         const std::size_t remainder = block->size - total;
         if (remainder >= min_split_remainder()) {
             // Carve the slack off as a new block and publish it through the
@@ -326,7 +336,8 @@ void* my_realloc(void* ptr, size_t new_size) {
                 coalesce_and_publish(block->next); // give the tail back
             }
         }
-        return ptr; // same pointer, prefix data preserved
+        my_block_note_requested(block, new_size); // Phase 13: grown in place
+        return ptr;                               // same pointer, prefix data preserved
     }
 
     // --- move: allocate fresh, copy the overlap, free the old block --------
