@@ -146,19 +146,19 @@
 - [x] Optimize only after profiling
 
 ## Phase 17 — Final Quality
-- [ ] Complete API docs
-- [ ] Complete architecture docs
-- [ ] Document invariants
-- [ ] Document limitations
-- [ ] Add examples
-- [ ] Full test suite
-- [ ] Sanitizers
-- [ ] Static analysis
-- [ ] Formatting checks
-- [ ] Release build
-- [ ] CI verification
-- [ ] Final README
-- [ ] Final review/tag
+- [x] Complete API docs
+- [x] Complete architecture docs
+- [x] Document invariants
+- [x] Document limitations
+- [x] Add examples
+- [x] Full test suite
+- [x] Sanitizers
+- [x] Static analysis
+- [x] Formatting checks
+- [x] Release build
+- [x] CI verification
+- [x] Final README
+- [x] Final review/tag
 
 ## AI Rules
 For every phase:

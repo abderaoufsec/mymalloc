@@ -130,12 +130,45 @@ dependencies). Current tests:
   original intact, data preservation (Phase 11)
 - `test_regions` — region tracking, multi-region scavenge-on-acquire, guarded
   release (invalid-unmap refusal), long-cycle registry bounds (Phase 12)
+- `test_fragmentation` — heap statistics, internal/external fragmentation,
+  derive-from-ground-truth walk, collect contract (Phase 13)
+- `test_debug` — pointer validation, heap-consistency checker, usage/diagnostic
+  counters, opt-in canaries, invalid/double-free detection (Phase 14)
+- `test_stress` — deterministic randomized alloc/free/realloc over mixed sizes,
+  data-integrity verification, three-way accounting cross-check, leak audit
+  (Phase 15)
+- `test_benchmark` — benchmark invariants: deterministic workload, clean drains,
+  reuse performs no OS acquisition (Phase 16)
 
 Run everything with `ctest --preset debug`, or a single test:
 
 ```sh
 ctest --preset debug -R test_version
 ```
+
+## Examples
+
+Each phase ships a runnable demo under `examples/` (build with
+`MYMALLOC_BUILD_EXAMPLES=ON`, the default). Run any from its build directory,
+e.g. `out/build/release/examples/fragmentation_demo`:
+
+- `hello_mymalloc` — version smoke test
+- `memory_layout` — process address-space layout (Phase 1)
+- `raw_memory_demo` — page-granular acquire/release (Phase 2)
+- `alignment_demo` — overflow-safe rounding (Phase 3)
+- `block_demo` — headers, conversions, corruption detection (Phase 4)
+- `allocator_demo` — first `my_malloc`/`my_free` (Phase 5)
+- `free_list_demo` — free-list reuse (Phase 6)
+- `split_demo` — splitting (Phase 7)
+- `coalescing_demo` — neighbour fusion (Phase 8)
+- `strategy_demo` — first-fit vs best-fit (Phase 9)
+- `calloc_demo` — zero-init + overflow checks (Phase 10)
+- `realloc_demo` — in-place / move resizing (Phase 11)
+- `regions_demo` — region registry + scavenge (Phase 12)
+- `fragmentation_demo` — live fragmentation metrics (Phase 13)
+- `debug_demo` — diagnostics, ownership, canaries (Phase 14)
+- `stress_demo` — narrated randomized workload (Phase 15)
+- `benchmark` — hot-path ns/op + strategy comparison (Phase 16)
 
 ## Formatting and static analysis
 
@@ -274,8 +307,15 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   drains without pinning any flaky wall-clock number
   ([docs/phase16_performance.md](docs/phase16_performance.md)), demo
   (`examples/benchmark.cpp`), tests (`test_benchmark`)
-- [ ] Phase 17+ — final quality: complete docs, full sanitizer/static-analysis
-  pass, final README, release review/tag
+- [x] **Phase 17 — Final Quality**: consolidated the public API into
+  [`docs/api.md`](docs/api.md) (every header, every function, contracts and
+  return values), refreshed the architecture doc with an implementation-status
+  table plus consolidated invariants and limitations, completed the README
+  (full test list, an Examples index), and verified the whole tree — clean
+  Debug and Release builds with `-Werror`, all 18 CTest suites green,
+  clang-format clean (sanitizers + cppcheck/clang-tidy run in CI; their
+  runtimes/tools are not in the local MSYS2 toolchain) — then tagged the
+  `v0.1.0` release
 
 ## Engineering rules
 
