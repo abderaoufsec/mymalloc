@@ -51,7 +51,8 @@ add_library(mymalloc
             src/allocator.cpp
             src/free_list.cpp
             src/regions.cpp
-            src/stats.cpp)
+            src/stats.cpp
+            src/debug.cpp)
 add_library(mymalloc::mymalloc ALIAS mymalloc)
 
 target_include_directories(mymalloc

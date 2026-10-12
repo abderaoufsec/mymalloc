@@ -12,6 +12,8 @@
 #include <mymalloc/free_list.h>
 #include <mymalloc/raw_memory.h>
 
+#include "debug_internal.h"
+
 #include <cstdint>
 #include <cstring>
 
@@ -93,6 +95,7 @@ int release_at(std::size_t index) {
     g_regions[index] = g_regions[g_count - 1U]; // swap-remove keeps entries packed
     --g_count;
 
+    my_dbg_note_region_remove(region.bytes); // Phase 14: mapped/region accounting
     my_raw_release(region.base, region.bytes);
     return 1;
 }
@@ -120,6 +123,7 @@ int my_region_track(void* base, size_t bytes) {
 
     g_regions[g_count] = my_region{base, bytes};
     ++g_count;
+    my_dbg_note_region_add(bytes); // Phase 14: mapped/region accounting
     return 1;
 }
 

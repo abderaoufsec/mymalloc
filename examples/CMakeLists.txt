@@ -65,3 +65,9 @@ target_link_libraries(regions_demo PRIVATE mymalloc::mymalloc)
 # docs/phase13_fragmentation.md).
 add_executable(fragmentation_demo fragmentation_demo.cpp)
 target_link_libraries(fragmentation_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 14 experiment: debugging — usage accounting, ownership/consistency
+# checks, and opt-in canaries + invalid/double-free detection (see
+# docs/phase14_debugging.md).
+add_executable(debug_demo debug_demo.cpp)
+target_link_libraries(debug_demo PRIVATE mymalloc::mymalloc)

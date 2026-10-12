@@ -28,6 +28,8 @@
 #include <mymalloc/regions.h>
 #include <mymalloc/strategy.h>
 
+#include "debug_internal.h"
+
 #include <cstdint>
 #include <cstring>
 
@@ -107,10 +109,18 @@ void* my_malloc(size_t size) {
     }
 
     // 1. Align the payload size, then add the header — both overflow-checked.
+    //    Phase 14: when checks are enabled, reserve an extra trailing alignment
+    //    unit so a canary can live just past the request (0 when checks are
+    //    off, keeping the Phase 5-13 layout and sizes byte-for-byte).
+    const std::size_t reserve = my_dbg_canary_reserve();
     std::size_t aligned_payload = 0;
     if (my_align_up_size(size, my_default_alignment(), &aligned_payload) != 1) {
         return NULL; // rounding the request itself would overflow
     }
+    if (aligned_payload > SIZE_MAX - reserve) {
+        return NULL; // request + canary reserve would overflow
+    }
+    aligned_payload += reserve;
     const std::size_t offset = my_block_user_offset();
     if (aligned_payload > SIZE_MAX - offset) {
         return NULL; // payload + header would overflow
@@ -140,6 +150,8 @@ void* my_malloc(size_t size) {
             my_block_note_requested(fit, size);           // Phase 13: record the live request
             tail->free = 1;                               // remainder stays free (explicit)
             static_cast<void>(my_free_list_insert(tail)); // remainder reusable
+            my_dbg_note_alloc(fit->size);                 // Phase 14: live usage accounting
+            my_dbg_canary_arm(fit);                       // Phase 14: canary (if enabled)
             return my_block_to_user(fit);
         }
         // Too small a remainder to split: hand back the whole fit (Phase 6).
@@ -148,6 +160,8 @@ void* my_malloc(size_t size) {
         }
         fit->free = 0;                      // allocated again
         my_block_note_requested(fit, size); // Phase 13: record the live request
+        my_dbg_note_alloc(fit->size);       // Phase 14: live usage accounting
+        my_dbg_canary_arm(fit);             // Phase 14: canary (if enabled)
         return my_block_to_user(fit);
     }
 
@@ -195,6 +209,8 @@ void* my_malloc(size_t size) {
         my_raw_release(region, region_bytes);
         return NULL;
     }
+    my_dbg_note_alloc(block->size); // Phase 14: live usage accounting
+    my_dbg_canary_arm(block);       // Phase 14: canary (if enabled)
     return my_block_to_user(block);
 }
 
@@ -208,15 +224,31 @@ void my_free(void* ptr) {
     // could have produced. Full foreign-pointer validation is Phase 14.
     my_block_header* block = my_user_to_block(ptr);
     if (my_block_valid(block) != 1) {
+        my_dbg_note_invalid_free(ptr); // Phase 14: report a foreign/invalid free
         return;
     }
 
     // Phase 6: re-freeing an already-free block would double-insert it and
-    // corrupt the free list. Ignore it silently for now (diagnostics land in
-    // Phase 14); the block stays a valid free-list member either way.
+    // corrupt the free list. Phase 14: when checks are on this is reported as
+    // a double free; either way the block stays a valid free-list member.
     if (my_block_is_free(block) == 1) {
+        my_dbg_note_double_free(ptr); // Phase 14: report a double free
         return;
     }
+
+    // Phase 14: verify the trailing canary while the block is still intact, so
+    // a heap overflow that ran past the request is caught here (a no-op when
+    // checks are off). We still free — an overflow cannot be undone.
+    static_cast<void>(my_dbg_canary_verify(block));
+
+    // Phase 14: drop the block from the canary registry before its bytes are
+    // reused, so a stale canary is never verified later (no-op when checks off).
+    my_dbg_canary_disarm(block);
+
+    // Capture the allocated size BEFORE coalescing: the survivor grows to
+    // cover freed neighbors, but those were already free (not live), so the
+    // live total must drop by exactly this block's own size.
+    const std::size_t freed_total = block->size;
 
     // Phase 8: coalesce with physically adjacent FREE neighbors before
     // publishing, so the split/free cycles of Phases 6-7 do not fragment a
@@ -225,6 +257,8 @@ void my_free(void* ptr) {
     // cleanly also merges cleanly (helper defined above; shared with
     // my_realloc since Phase 11).
     coalesce_and_publish(block);
+
+    my_dbg_note_free(freed_total); // Phase 14: live usage accounting
 }
 
 void* my_calloc(size_t count, size_t size) {
@@ -279,6 +313,11 @@ void* my_realloc(void* ptr, size_t new_size) {
         return NULL;
     }
 
+    // Phase 14: the block's size before any in-place resize, so the live-total
+    // accounting can move by exactly the delta (the move path self-accounts via
+    // its own my_malloc/my_free and never reaches the resize hooks).
+    const std::size_t old_total = block->size;
+
     // Size computation identical to my_malloc: align the payload, add the
     // header, both overflow-checked. An impossible request fails here WITHOUT
     // touching the original block — the C requirement for realloc failure is
@@ -287,6 +326,14 @@ void* my_realloc(void* ptr, size_t new_size) {
     if (my_align_up_size(new_size, my_default_alignment(), &aligned_payload) != 1) {
         return NULL;
     }
+    // Phase 14: reserve canary space exactly as my_malloc does, so a resized
+    // block keeps room for its trailing canary (0 when checks are off, which
+    // keeps the Phase 11 layout and sizes byte-for-byte).
+    const std::size_t reserve = my_dbg_canary_reserve();
+    if (aligned_payload > SIZE_MAX - reserve) {
+        return NULL; // request + canary reserve would overflow
+    }
+    aligned_payload += reserve;
     const std::size_t offset = my_block_user_offset();
     if (aligned_payload > SIZE_MAX - offset) {
         return NULL;
@@ -314,7 +361,9 @@ void* my_realloc(void* ptr, size_t new_size) {
         }
         // Below the split threshold the slack stays internal (Phase 7
         // policy): slightly oversized allocation beats an unusable sliver.
-        return ptr; // same pointer, prefix data preserved
+        my_dbg_note_resize(old_total, block->size); // Phase 14: live usage delta
+        my_dbg_canary_restamp(block);               // Phase 14: canary moved
+        return ptr;                                 // same pointer, prefix data preserved
     }
 
     // --- grow in place: absorb a sufficient FREE upper neighbor ------------
@@ -336,8 +385,10 @@ void* my_realloc(void* ptr, size_t new_size) {
                 coalesce_and_publish(block->next); // give the tail back
             }
         }
-        my_block_note_requested(block, new_size); // Phase 13: grown in place
-        return ptr;                               // same pointer, prefix data preserved
+        my_block_note_requested(block, new_size);   // Phase 13: grown in place
+        my_dbg_note_resize(old_total, block->size); // Phase 14: live usage delta
+        my_dbg_canary_restamp(block);               // Phase 14: canary moved
+        return ptr;                                 // same pointer, prefix data preserved
     }
 
     // --- move: allocate fresh, copy the overlap, free the old block --------

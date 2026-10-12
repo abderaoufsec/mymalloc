@@ -244,7 +244,16 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   each live request so no allocation behaviour changes
   ([docs/phase13_fragmentation.md](docs/phase13_fragmentation.md)), demo
   (`examples/fragmentation_demo.cpp`), tests (`test_fragmentation`)
-- [ ] Phase 14+ — debugging, stress tests, benchmarks
+- [x] **Phase 14 — Debugging**: `<mymalloc/debug.h>` adds three independent
+  surfaces — `my_owns`/`my_check_heap` for always-available ownership and heap
+  consistency, `my_diagnostics` for always-on usage peaks/mirror plus opt-in
+  event counters (invalid/double free, corruption, bad canary, foreign
+  pointer), and `my_enable_checks` for opt-in trailing **canaries** that catch
+  heap overflows; checks are off by default so release builds keep the exact
+  Phase 5–13 block layout and speed
+  ([docs/phase14_debugging.md](docs/phase14_debugging.md)), demo
+  (`examples/debug_demo.cpp`), tests (`test_debug`)
+- [ ] Phase 15+ — stress testing, performance benchmarking, final polish
 
 ## Engineering rules
 

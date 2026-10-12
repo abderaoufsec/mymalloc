@@ -118,14 +118,14 @@
 - [x] Add fragmentation workloads
 
 ## Phase 14 — Debugging
-- [ ] Validate pointers
-- [ ] Detect invalid free
-- [ ] Detect double free
-- [ ] Add optional canaries
-- [ ] Detect metadata corruption
-- [ ] Add heap consistency checker
-- [ ] Add diagnostic output
-- [ ] Add debug statistics
+- [x] Validate pointers
+- [x] Detect invalid free
+- [x] Detect double free
+- [x] Add optional canaries
+- [x] Detect metadata corruption
+- [x] Add heap consistency checker
+- [x] Add diagnostic output
+- [x] Add debug statistics
 
 ## Phase 15 — Stress Testing
 - [ ] Random allocation/free
