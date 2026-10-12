@@ -14,6 +14,7 @@
 
 #include "debug_internal.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 

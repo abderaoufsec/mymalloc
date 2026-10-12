@@ -8,6 +8,7 @@
 
 #include <mymalloc/alignment.h>
 
+#include <cstddef>
 #include <cstdint>
 
 size_t my_block_user_offset(void) {

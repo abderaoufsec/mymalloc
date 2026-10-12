@@ -5,6 +5,7 @@
 // zero-initialized memory. See docs/phase2_raw_memory.md.
 #include <mymalloc/raw_memory.h>
 
+#include <cstddef>
 #include <cstdint>
 
 #ifdef _WIN32
