@@ -137,13 +137,13 @@
 - [x] Detect leaks/corruption
 
 ## Phase 16 — Performance
-- [ ] Allocation benchmarks
-- [ ] Free benchmarks
-- [ ] Realloc benchmarks
-- [ ] Fragmentation benchmarks
-- [ ] Compare strategies
-- [ ] Profile bottlenecks
-- [ ] Optimize only after profiling
+- [x] Allocation benchmarks
+- [x] Free benchmarks
+- [x] Realloc benchmarks
+- [x] Fragmentation benchmarks
+- [x] Compare strategies
+- [x] Profile bottlenecks
+- [x] Optimize only after profiling
 
 ## Phase 17 — Final Quality
 - [ ] Complete API docs

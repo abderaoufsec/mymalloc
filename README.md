@@ -262,7 +262,20 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   runs must record zero anomalies
   ([docs/phase15_stress_testing.md](docs/phase15_stress_testing.md)), demo
   (`examples/stress_demo.cpp`), tests (`test_stress`)
-- [ ] Phase 16+ — performance benchmarking, final polish
+- [x] **Phase 16 — Performance**: a `std::chrono`-based benchmark
+  (`examples/benchmark.cpp`) times the hot paths (reuse, fresh-acquire, free,
+  realloc) and compares first-fit vs best-fit on a byte-for-byte identical
+  deterministic workload, reporting ns/op and the fragmentation each leaves;
+  profiling shows OS acquisition dominates the cold path (~26× a reuse hit) and
+  best-fit's O(n) scan buys no fragmentation benefit here (~17× slower, same
+  frag), confirming the Phase 9 first-fit default — so, per "optimize only
+  after profiling", **no code changed** (a slab/size-class cache is recorded as
+  future work); `test_benchmark` asserts the harness's determinism and clean
+  drains without pinning any flaky wall-clock number
+  ([docs/phase16_performance.md](docs/phase16_performance.md)), demo
+  (`examples/benchmark.cpp`), tests (`test_benchmark`)
+- [ ] Phase 17+ — final quality: complete docs, full sanitizer/static-analysis
+  pass, final README, release review/tag
 
 ## Engineering rules
 

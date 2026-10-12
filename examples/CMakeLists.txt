@@ -77,3 +77,9 @@ target_link_libraries(debug_demo PRIVATE mymalloc::mymalloc)
 # audit (see docs/phase15_stress_testing.md).
 add_executable(stress_demo stress_demo.cpp)
 target_link_libraries(stress_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 16 experiment: performance — hot-path ns/op benchmarks, a first-fit vs
+# best-fit comparison on an identical workload, and the fragmentation each
+# leaves behind (see docs/phase16_performance.md).
+add_executable(benchmark benchmark.cpp)
+target_link_libraries(benchmark PRIVATE mymalloc::mymalloc)
