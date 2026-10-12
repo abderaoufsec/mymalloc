@@ -253,7 +253,16 @@ Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
   Phase 5–13 block layout and speed
   ([docs/phase14_debugging.md](docs/phase14_debugging.md)), demo
   (`examples/debug_demo.cpp`), tests (`test_debug`)
-- [ ] Phase 15+ — stress testing, performance benchmarking, final polish
+- [x] **Phase 15 — Stress Testing**: a deterministic (fixed-seed splitmix64)
+  randomized suite — `test_stress` — hammers alloc/calloc/realloc/free over
+  mixed sizes and long workloads, stamping a unique per-allocation byte pattern
+  to catch any overlap or corruption and cross-checking the Phase 13 walk, the
+  Phase 14 counters, and its own tally three ways at every checkpoint, then
+  auditing for leaks (drain-to-zero + scavenge-to-one-region); canary-enabled
+  runs must record zero anomalies
+  ([docs/phase15_stress_testing.md](docs/phase15_stress_testing.md)), demo
+  (`examples/stress_demo.cpp`), tests (`test_stress`)
+- [ ] Phase 16+ — performance benchmarking, final polish
 
 ## Engineering rules
 

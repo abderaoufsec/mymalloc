@@ -71,3 +71,9 @@ target_link_libraries(fragmentation_demo PRIVATE mymalloc::mymalloc)
 # docs/phase14_debugging.md).
 add_executable(debug_demo debug_demo.cpp)
 target_link_libraries(debug_demo PRIVATE mymalloc::mymalloc)
+
+# Phase 15 experiment: stress testing — a deterministic randomized alloc/
+# calloc/realloc/free workload with data-integrity verification and a leak
+# audit (see docs/phase15_stress_testing.md).
+add_executable(stress_demo stress_demo.cpp)
+target_link_libraries(stress_demo PRIVATE mymalloc::mymalloc)

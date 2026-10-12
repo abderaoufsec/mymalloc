@@ -128,13 +128,13 @@
 - [x] Add debug statistics
 
 ## Phase 15 — Stress Testing
-- [ ] Random allocation/free
-- [ ] Random realloc
-- [ ] Mixed sizes
-- [ ] Long-running workloads
-- [ ] Verify stored data
-- [ ] Run sanitizer builds
-- [ ] Detect leaks/corruption
+- [x] Random allocation/free
+- [x] Random realloc
+- [x] Mixed sizes
+- [x] Long-running workloads
+- [x] Verify stored data
+- [x] Run sanitizer builds
+- [x] Detect leaks/corruption
 
 ## Phase 16 — Performance
 - [ ] Allocation benchmarks
