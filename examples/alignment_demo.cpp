@@ -57,13 +57,14 @@ int main() {
         std::printf("raw acquire FAILED\n");
         return 1;
     }
-    const uintptr_t raw = reinterpret_cast<uintptr_t>(block);
-    uintptr_t interior = 0;
+    const std::uintptr_t raw = reinterpret_cast<std::uintptr_t>(block);
+    std::uintptr_t interior = 0;
     if (my_align_up_address(raw + 1U, base, &interior) == 1) {
         std::printf("region      %p\n", block);
         std::printf("raw + 1     %p (unaligned)\n", reinterpret_cast<void*>(raw + 1U));
         std::printf("aligned up  %p (offset +%zu, %% %zu == %zu)\n",
-                    reinterpret_cast<void*>(interior), interior - raw, base, interior % base);
+                    reinterpret_cast<void*>(interior), static_cast<std::size_t>(interior - raw),
+                    base, static_cast<std::size_t>(interior % base));
     }
     my_raw_release(block, page);
 
