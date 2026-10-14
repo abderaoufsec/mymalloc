@@ -2,8 +2,10 @@
 //
 // Alignment requirements for mymalloc (see docs/phase3_alignment.md):
 // - my_malloc (Phase 5+) must return pointers aligned to
-//   my_default_alignment(), i.e. alignof(max_align_t) — 16 bytes on
-//   x86-64 — matching the guarantee of the standard malloc.
+//   my_default_alignment(). That is 16 bytes on 64-bit platforms (floored
+//   at 16, since MSVC's alignof(max_align_t) is only 8 there), matching the
+//   de-facto guarantee of the standard malloc on x86-64; on 32-bit
+//   platforms it is alignof(max_align_t) (8).
 // - All alignments are powers of two, which enables the branchless
 //   rounding trick (value + mask) & ~mask.
 //
