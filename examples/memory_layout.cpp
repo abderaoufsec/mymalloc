@@ -79,18 +79,21 @@ struct StackProbes {
     std::uintptr_t inner;
 };
 
-MYMALLOC_NOINLINE std::uintptr_t inner_frame() {
+// Each frame's address is written through an out-parameter rather than
+// returned: returning the address of a local trips MSVC's C4172 ("returning
+// address of local variable") even though only its numeric value is ever
+// used, and storing it through a reference records the same value portably.
+MYMALLOC_NOINLINE void inner_frame(std::uintptr_t& self) {
     volatile char local[256] = {};
     local[0] = 3;
-    return address_of(&local[0]);
+    self = address_of(&local[0]);
 }
 
-MYMALLOC_NOINLINE std::uintptr_t middle_frame(std::uintptr_t& deeper) {
+MYMALLOC_NOINLINE void middle_frame(std::uintptr_t& self, std::uintptr_t& deeper) {
     volatile char local[256] = {};
     local[0] = 2;
-    const std::uintptr_t self = address_of(&local[0]);
-    deeper = inner_frame();
-    return self;
+    self = address_of(&local[0]);
+    inner_frame(deeper);
 }
 
 StackProbes probe_stack_frames() {
@@ -98,7 +101,7 @@ StackProbes probe_stack_frames() {
     volatile char outer_local[256] = {};
     outer_local[0] = 1;
     probes.outer = address_of(&outer_local[0]);
-    probes.middle = middle_frame(probes.inner);
+    middle_frame(probes.middle, probes.inner);
     return probes;
 }
 

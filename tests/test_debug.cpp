@@ -161,15 +161,24 @@ int main() {
         g_hook_events = 0;
         my_diag_reset();
 
-        // A foreign free is an invalid free.
-        int stack_local = 0;
-        my_free(&stack_local);
+        // A foreign free is an invalid free. Free an INTERIOR pointer of a
+        // real allocation rather than a foreign stack address: it is a pointer
+        // my_malloc never handed out, so my_free must reject it, but it still
+        // lies inside the allocator's mapped memory. (A foreign stack address
+        // would make the header validator read outside the heap — undefined
+        // behavior that AddressSanitizer flags as a stack-buffer-underflow.)
+        // The +1 byte offset keeps the computed block pointer misaligned, so
+        // my_block_valid rejects it on the alignment check without dereferencing.
+        void* q = my_malloc(64);
+        MYMALLOC_CHECK(q != nullptr);
+        my_free(static_cast<unsigned char*>(q) + 1); // interior byte: invalid free
         my_diag d = {};
         MYMALLOC_CHECK(my_diagnostics(&d) == 1);
         MYMALLOC_CHECK(d.invalid_frees == 1);
         MYMALLOC_CHECK(g_hook_events == 1);
         MYMALLOC_CHECK(std::strcmp(g_last_event, "invalid free") == 0);
         MYMALLOC_CHECK(my_check_heap(nullptr, 0) == 1); // still consistent
+        my_free(q); // release the real block (no leak under ASan)
 
         // A double free is counted separately and does not corrupt the heap.
         void* p = my_malloc(128);

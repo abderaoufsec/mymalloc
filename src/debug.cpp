@@ -34,6 +34,7 @@
 
 #include "debug_internal.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -160,7 +161,9 @@ int armed_grow() {
     if (buffer == NULL) {
         return 0;
     }
-    std::memcpy(buffer, g_armed, g_armed_count * sizeof(my_block_header*));
+    if (g_armed != NULL && g_armed_count > 0) {
+        std::memcpy(buffer, g_armed, g_armed_count * sizeof(my_block_header*));
+    }
     if (g_armed != NULL) {
         my_raw_release(g_armed, g_armed_capacity * sizeof(my_block_header*));
     }

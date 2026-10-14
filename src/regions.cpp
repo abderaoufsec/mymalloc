@@ -14,6 +14,7 @@
 
 #include "debug_internal.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 
@@ -62,7 +63,9 @@ int grow_table(std::size_t min_capacity) {
     if (buffer == NULL) {
         return 0;
     }
-    std::memcpy(buffer, g_regions, g_count * sizeof(my_region)); // entries are trivially copyable
+    if (g_regions != NULL && g_count > 0) {
+        std::memcpy(buffer, g_regions, g_count * sizeof(my_region)); // trivially copyable
+    }
     if (g_regions != NULL) {
         my_raw_release(g_regions, g_capacity * sizeof(my_region));
     }
