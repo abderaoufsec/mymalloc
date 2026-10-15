@@ -166,10 +166,14 @@ void* my_malloc(size_t size) {
         return my_block_to_user(fit);
     }
 
-    // 2. Decide the region size up front (page-rounded) so the raw layer and
+    // 2. Decide the region size up front so the raw layer and
     //    the block header agree on the real extent of the mapping.
+    //    Use a minimum chunk size so that small allocations don't each
+    //    cause a separate OS mapping (arena/chunk growth, Phase 18).
     std::size_t region_bytes = 0;
-    if (my_align_up_size(total, my_raw_page_size(), &region_bytes) != 1) {
+    const std::size_t min_chunk = my_raw_page_size() * 16U; // 16 pages minimum
+    std::size_t requested_region_bytes = total > min_chunk ? total : min_chunk;
+    if (my_align_up_size(requested_region_bytes, my_raw_page_size(), &region_bytes) != 1) {
         return NULL;
     }
 
@@ -181,7 +185,9 @@ void* my_malloc(size_t size) {
     static_cast<void>(my_regions_release_free());
 
     // 4. Acquire memory when needed (fails -> NULL).
-    void* region = my_raw_acquire(total);
+    //    Acquire at least min_chunk bytes so the region can carve a remainder
+    //    block reusable by future allocations.
+    void* region = my_raw_acquire(requested_region_bytes);
     if (region == NULL) {
         return NULL;
     }
@@ -201,16 +207,65 @@ void* my_malloc(size_t size) {
     my_block_note_requested(block, size); // Phase 13: the region is this
     // request's block; record the exact ask for the fragmentation statistics
 
-    // 6. Adopt ownership of the region (Phase 12), then return the payload.
-    //    Tracking happens only after the block is initialized, so a region
-    //    that was never tracked is never touched by the release paths. If
-    //    the registry itself cannot grow, the fresh region is dropped on the
-    //    spot and the request fails loudly instead of leaking.
+    // 6. Adopt ownership of the region (Phase 12), then carve the request
+    //    from the front of the block. The remainder becomes a free block
+    //    on the free list (Phase 6-7 split policy), so future allocations
+    //    can reuse it without calling the OS.
     if (my_region_track(region, region_bytes) != 1) {
         my_raw_release(region, region_bytes);
         return NULL;
     }
-    my_dbg_note_alloc(block->size); // Phase 14: live usage accounting
+
+    // Carve the front `total` bytes and initialize the remainder as a free block.
+    // Both the front and the remainder share the same physical starting address
+    // (the region base), but have independent headers and physical neighbor links.
+    if (my_block_init(block, total, 0 /* allocated */, NULL, NULL) != 1) {
+        my_raw_release(region, region_bytes); // cannot happen; defensive
+        return NULL;
+    }
+    my_block_note_requested(block, size); // Phase 13: record the live request
+
+    // Remainder block starts at region base + total bytes.
+    my_block_header* const remainder =
+        reinterpret_cast<my_block_header*>(reinterpret_cast<unsigned char*>(block) + total);
+
+    // Initialize the remainder: total bytes left, free, with physical chain.
+    const std::size_t remainder_size = block_bytes - total;
+    if (remainder_size < my_block_user_offset() || (remainder_size % my_default_alignment()) != 0) {
+        // Remainder too small to be a valid block; keep the whole region allocated.
+        // The allocator falls through to the existing "whole fit" path below.
+        // But since we're past the reuse path, we need to handle this: unmap and fail,
+        // or keep the region as one allocated block. We keep it as one allocated block:
+        my_dbg_note_alloc(block->size);
+        my_dbg_canary_arm(block);
+        return my_block_to_user(block);
+    }
+    remainder->size = remainder_size;
+    remainder->free = 1;
+    remainder->prev = NULL;
+    remainder->next = NULL;
+    remainder->requested = 0; // fresh free block: no live request yet
+
+    // Wire the remainder into the physical chain after the front block.
+    // The front block's next pointer now points to the remainder.
+    block->next = remainder;
+
+    // Insert the remainder into the free list (address-ordered).
+    // Since the remainder is at a higher address than the front block and there
+    // are no other blocks in between (it's the only free block initially), it
+    // becomes the new free-list head (lowest-address free block after any prior
+    // free-list entries from my_regions_release_free).
+    if (my_free_list_insert(remainder) != 1) {
+        // Defensive: if insert fails (e.g., remainder already listed), just
+        // keep the remainder unlisted but free; the region will be scavenged later.
+        my_dbg_note_alloc(block->size);
+        my_dbg_canary_arm(block);
+        // Don't return NULL — the allocation still succeeds with the front block.
+    } else {
+        my_dbg_note_alloc(remainder->size); // Phase 14: live usage accounting for free block
+    }
+
+    my_dbg_note_alloc(block->size); // Phase 14: live usage accounting (front block)
     my_dbg_canary_arm(block);       // Phase 14: canary (if enabled)
     return my_block_to_user(block);
 }
