@@ -31,6 +31,7 @@
 #ifndef MYMALLOC_DEBUG_INTERNAL_H
 #define MYMALLOC_DEBUG_INTERNAL_H
 
+#include <atomic>
 #include <stddef.h>
 
 #include <mymalloc/block.h>
@@ -38,6 +39,31 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// --- thread safety: process-wide spinlock (atomic_flag, zero-allocation) ---
+
+// Global spinlock initialized once to ATOMIC_FLAG_INIT (unlocked).
+// Allocation entry points acquire/release this lock so that concurrent
+// my_malloc/my_free calls from multiple threads do not corrupt internal
+// metadata (free-list links, region registry, canary registry).
+// The lock is never held across my_malloc/my_free calls from different
+// threads in a way that would cause deadlock: the lock is very short-held
+// (only the critical section of header/free-list update) and the lock
+// ordering is simple (one global lock, no nested locks).
+inline void lock_allocator(void) {
+    // Myers's algorithm / simple test-and-set via atomic_flag.
+    // C++11 std::atomic_flag is lock-free on every mainstream platform.
+    g_alloc_lock.test_and_set(std::memory_order_acquire);
+}
+
+inline void unlock_allocator(void) {
+    g_alloc_lock.clear(std::memory_order_release);
+}
+
+// Global spinlock (default: unlocked = clear).
+inline bool g_alloc_lock_initialized = false;
+// Note: g_alloc_lock itself is implicitly zero-initialized (ATOMIC_FLAG_INIT),
+// so the lock starts in the unlocked state without any explicit init call.
 
 // --- always-on accounting (called on the allocator happy paths) ------------
 

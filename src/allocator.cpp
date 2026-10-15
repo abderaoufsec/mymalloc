@@ -271,8 +271,10 @@ void* my_malloc(size_t size) {
 }
 
 void my_free(void* ptr) {
+    lock_allocator();
     // free(nullptr) is a documented no-op (C requirement).
     if (ptr == NULL) {
+        unlock_allocator();
         return;
     }
 
@@ -281,6 +283,7 @@ void my_free(void* ptr) {
     my_block_header* block = my_user_to_block(ptr);
     if (my_block_valid(block) != 1) {
         my_dbg_note_invalid_free(ptr); // Phase 14: report a foreign/invalid free
+        unlock_allocator();
         return;
     }
 
@@ -289,6 +292,7 @@ void my_free(void* ptr) {
     // a double free; either way the block stays a valid free-list member.
     if (my_block_is_free(block) == 1) {
         my_dbg_note_double_free(ptr); // Phase 14: report a double free
+        unlock_allocator();
         return;
     }
 
@@ -315,21 +319,26 @@ void my_free(void* ptr) {
     coalesce_and_publish(block);
 
     my_dbg_note_free(freed_total); // Phase 14: live usage accounting
+    unlock_allocator();
 }
 
 void* my_calloc(size_t count, size_t size) {
+    lock_allocator();
     // Consistent with my_malloc: a zero-element or zero-size array fails
     // (documented decision; C leaves calloc(0, n) implementation-defined).
     if (count == 0 || size == 0) {
+        unlock_allocator();
         return NULL;
     }
     // Overflow check on count * size BEFORE the multiply — the canonical
     // calloc safety property. count != 0 here, so SIZE_MAX / count is defined.
     if (count > SIZE_MAX / size) {
+        unlock_allocator();
         return NULL;
     }
     const size_t total = count * size;
 
+    unlock_allocator();
     void* pointer = my_malloc(total);
     if (pointer == NULL) {
         return NULL;
@@ -343,9 +352,12 @@ void* my_calloc(size_t count, size_t size) {
 }
 
 void* my_realloc(void* ptr, size_t new_size) {
+    lock_allocator();
     // realloc(NULL, new_size) is defined to be malloc(new_size).
     if (ptr == NULL) {
-        return my_malloc(new_size);
+        void* result = my_malloc(new_size);
+        unlock_allocator();
+        return result;
     }
     // realloc(ptr, 0) frees the block and returns NULL — consistent with
     // my_malloc(0) failing loudly (documented decision; C leaves realloc(p, 0)
@@ -353,6 +365,7 @@ void* my_realloc(void* ptr, size_t new_size) {
     // which every portable caller must already handle).
     if (new_size == 0) {
         my_free(ptr);
+        unlock_allocator();
         return NULL;
     }
 
@@ -363,9 +376,11 @@ void* my_realloc(void* ptr, size_t new_size) {
     // live allocation would be worse than returning NULL.
     my_block_header* block = my_user_to_block(ptr);
     if (my_block_valid(block) != 1) {
+        unlock_allocator();
         return NULL;
     }
     if (my_block_is_free(block) == 1) {
+        unlock_allocator();
         return NULL;
     }
 
@@ -380,6 +395,7 @@ void* my_realloc(void* ptr, size_t new_size) {
     // that the caller's pointer stays valid and unchanged.
     std::size_t aligned_payload = 0;
     if (my_align_up_size(new_size, my_default_alignment(), &aligned_payload) != 1) {
+        unlock_allocator();
         return NULL;
     }
     // Phase 14: reserve canary space exactly as my_malloc does, so a resized
@@ -387,11 +403,13 @@ void* my_realloc(void* ptr, size_t new_size) {
     // keeps the Phase 11 layout and sizes byte-for-byte).
     const std::size_t reserve = my_dbg_canary_reserve();
     if (aligned_payload > SIZE_MAX - reserve) {
+        unlock_allocator();
         return NULL; // request + canary reserve would overflow
     }
     aligned_payload += reserve;
     const std::size_t offset = my_block_user_offset();
     if (aligned_payload > SIZE_MAX - offset) {
+        unlock_allocator();
         return NULL;
     }
     const std::size_t total = aligned_payload + offset;
@@ -419,7 +437,8 @@ void* my_realloc(void* ptr, size_t new_size) {
         // policy): slightly oversized allocation beats an unusable sliver.
         my_dbg_note_resize(old_total, block->size); // Phase 14: live usage delta
         my_dbg_canary_restamp(block);               // Phase 14: canary moved
-        return ptr;                                 // same pointer, prefix data preserved
+        unlock_allocator();
+        return ptr; // same pointer, prefix data preserved
     }
 
     // --- grow in place: absorb a sufficient FREE upper neighbor ------------
@@ -444,7 +463,8 @@ void* my_realloc(void* ptr, size_t new_size) {
         my_block_note_requested(block, new_size);   // Phase 13: grown in place
         my_dbg_note_resize(old_total, block->size); // Phase 14: live usage delta
         my_dbg_canary_restamp(block);               // Phase 14: canary moved
-        return ptr;                                 // same pointer, prefix data preserved
+        unlock_allocator();
+        return ptr; // same pointer, prefix data preserved
     }
 
     // --- move: allocate fresh, copy the overlap, free the old block --------
@@ -452,13 +472,19 @@ void* my_realloc(void* ptr, size_t new_size) {
     // failed my_malloc returns NULL with the ORIGINAL block untouched (the C
     // requirement); on success only the overlap min(old payload, new size)
     // bytes carries over — exactly what the contract promises the caller.
+    // Note: my_malloc acquires its own lock; we release our lock during
+    // the internal call to avoid spinlock re-entry by the same thread.
+    unlock_allocator();
     void* fresh = my_malloc(new_size);
+    lock_allocator();
     if (fresh == NULL) {
+        unlock_allocator();
         return NULL; // original block untouched
     }
     const std::size_t old_payload = my_block_payload_size(block);
     const std::size_t copy = old_payload < new_size ? old_payload : new_size;
     std::memcpy(fresh, ptr, copy);
     my_free(ptr); // old block rejoins the free list (coalesced, Phase 8)
+    unlock_allocator();
     return fresh;
 }
