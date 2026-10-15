@@ -88,7 +88,7 @@ int main() {
     // 7. Scavenge-on-acquire: an oversized request unmapped every
     //    fully-free region first, so mapped == live after the acquire.
     std::printf("\n[7] scavenge: my_malloc(256 KiB) collapses free regions\n");
-    void* big = my_malloc(256U * 1024U);
+    void* big = my_malloc(static_cast<std::size_t>(256) * 1024U);
     print_stats("fresh large region: only live memory is mapped");
     my_free(big);
     print_stats("freed but still mapped until the next big acquire");

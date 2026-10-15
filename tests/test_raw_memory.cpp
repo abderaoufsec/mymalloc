@@ -25,7 +25,7 @@ int main() {
     // --- page size sanity --------------------------------------------------
     const std::size_t page = my_raw_page_size();
     MYMALLOC_CHECK(page >= 256U);
-    MYMALLOC_CHECK(page <= 16U * 1024U * 1024U);
+    MYMALLOC_CHECK(page <= static_cast<std::size_t>(16) * 1024U * 1024U);
     MYMALLOC_CHECK((page & (page - 1U)) == 0U);
 
     // --- single page: success, alignment, zero-fill, writability ----------

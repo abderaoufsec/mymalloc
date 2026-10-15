@@ -130,7 +130,7 @@ int main() {
     // --- page size: power of two, sane bounds -----------------------------
     const std::size_t page_size = query_page_size();
     MYMALLOC_CHECK(page_size >= 256U);
-    MYMALLOC_CHECK(page_size <= 16U * 1024U * 1024U);
+    MYMALLOC_CHECK(page_size <= static_cast<std::size_t>(16) * 1024U * 1024U);
     MYMALLOC_CHECK((page_size & (page_size - 1U)) == 0U);
 
     // --- one distinct address per region ----------------------------------

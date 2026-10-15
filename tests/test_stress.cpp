@@ -97,7 +97,7 @@ std::size_t random_size(Rng& rng) {
     if (bucket < 97) {
         return 1 + rng.below(8192);
     }
-    return 1 + rng.below(40 * 1024);
+    return 1 + rng.below(static_cast<std::size_t>(40) * 1024U);
 }
 
 // Cross-checks the heap three ways against our own expectation: the Phase 13

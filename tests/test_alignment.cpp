@@ -123,15 +123,18 @@ int main() {
     const std::size_t page = my_raw_page_size();
     void* block = my_raw_acquire(page * 2U);
     MYMALLOC_CHECK(block != nullptr);
-    const uintptr_t raw = reinterpret_cast<uintptr_t>(block);
-    uintptr_t aligned = 0;
+    const std::uintptr_t raw = reinterpret_cast<std::uintptr_t>(block);
+    std::uintptr_t aligned = 0;
     MYMALLOC_CHECK(my_align_up_address(raw + 1U, base, &aligned) == 1);
     MYMALLOC_CHECK(aligned % base == 0U);
     MYMALLOC_CHECK(aligned >= raw);
     MYMALLOC_CHECK(aligned < raw + page * 2U); // still inside the region
-    // The aligned interior pointer must be usable memory.
-    std::memset(reinterpret_cast<void*>(aligned), 0x77, base);
-    MYMALLOC_CHECK(*reinterpret_cast<unsigned char*>(aligned) == 0x77);
+    // The aligned interior pointer must be usable memory. Reach it by pointer
+    // arithmetic on the region base (offset = aligned - raw) rather than
+    // casting the computed integer address back to a pointer.
+    unsigned char* usable = static_cast<unsigned char*>(block) + (aligned - raw);
+    std::memset(usable, 0x77, base);
+    MYMALLOC_CHECK(*usable == 0x77);
     my_raw_release(block, page * 2U);
 
     MYMALLOC_TEST_MAIN("alignment");

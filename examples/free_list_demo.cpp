@@ -53,7 +53,7 @@ int main() {
     // 2. A request larger than every listed block bypasses the list.
     my_free(b);
     dump_list("after free(b)");
-    void* huge = my_malloc(2 * 1024 * 1024); // 2 MiB > both listed blocks
+    void* huge = my_malloc(static_cast<std::size_t>(2) * 1024 * 1024); // 2 MiB > both listed blocks
     std::printf("huge=%p (fresh region; list untouched)\n", huge);
     dump_list("after huge alloc");
 

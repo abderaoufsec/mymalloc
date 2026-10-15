@@ -166,7 +166,7 @@ int main() {
     // region (Phase 12 scavenge-on-acquire), leaving the list empty. From
     // here on p1/p2 DANGLING: my_malloc does not validate foreign or
     // dangling pointers yet (Phase 14), so the test must not touch them.
-    void* bigp = my_malloc(2 * 1024 * 1024); // 2 MiB > the listed block
+    void* bigp = my_malloc(static_cast<std::size_t>(2) * 1024 * 1024); // 2 MiB > the listed block
     MYMALLOC_CHECK(bigp != nullptr);
     MYMALLOC_CHECK(my_free_list_count() == 0); // the small region was reclaimed
     my_free(bigp);

@@ -42,7 +42,7 @@ int main() {
     // --- scavenge-on-acquire ------------------------------------------------
     // 1 MiB cannot fit any 4 KiB free block, so my_malloc must acquire:
     // it first reclaims ALL fully-free regions, then maps one new one.
-    void* big = my_malloc(1024 * 1024);
+    void* big = my_malloc(static_cast<std::size_t>(1024) * 1024);
     print_state("after my_malloc(1 MiB) [scavenge reclaimed A+B+C]");
     my_free(big);
     print_state("after my_free(1 MiB) [still tracked]");
@@ -58,7 +58,7 @@ int main() {
                 my_region_release(&foreign, sizeof(foreign)));
 
     // Force a fresh acquire: the fully-free 1 MiB region is reclaimed now.
-    void* fresh = my_malloc(2 * 1024 * 1024);
+    void* fresh = my_malloc(static_cast<std::size_t>(2) * 1024 * 1024);
     print_state("after fresh 2 MiB acquire [1 MiB region reclaimed]");
     // `fresh` is live, so its region is NOT fully free and cannot be released.
     (void)my_region_find(fresh, &found);

@@ -60,11 +60,17 @@ int main() {
     const std::uintptr_t raw = reinterpret_cast<std::uintptr_t>(block);
     std::uintptr_t interior = 0;
     if (my_align_up_address(raw + 1U, base, &interior) == 1) {
+        // Reach the unaligned and aligned interior pointers by pointer
+        // arithmetic on the region base (offset from `raw`) rather than casting
+        // the computed integer addresses back to pointers.
+        unsigned char* base_ptr = static_cast<unsigned char*>(block);
+        unsigned char* unaligned = base_ptr + 1U;
+        unsigned char* aligned = base_ptr + (interior - raw);
         std::printf("region      %p\n", block);
-        std::printf("raw + 1     %p (unaligned)\n", reinterpret_cast<void*>(raw + 1U));
-        std::printf("aligned up  %p (offset +%zu, %% %zu == %zu)\n",
-                    reinterpret_cast<void*>(interior), static_cast<std::size_t>(interior - raw),
-                    base, static_cast<std::size_t>(interior % base));
+        std::printf("raw + 1     %p (unaligned)\n", static_cast<void*>(unaligned));
+        std::printf("aligned up  %p (offset +%zu, %% %zu == %zu)\n", static_cast<void*>(aligned),
+                    static_cast<std::size_t>(interior - raw), base,
+                    static_cast<std::size_t>(interior % base));
     }
     my_raw_release(block, page);
 

@@ -400,8 +400,13 @@ void test_rejected_pointers() {
     my_free_list_clear();
 
     // A misaligned foreign address is refused before it is even dereferenced.
-    MYMALLOC_CHECK(my_realloc(reinterpret_cast<void*>(static_cast<uintptr_t>(0x1234)), 16U) ==
-                   nullptr);
+    // Build it from a real object's address (plus one byte, so it cannot be a
+    // valid mymalloc user pointer) instead of casting a raw integer, which
+    // would be an int-to-pointer round-trip. my_block_valid rejects the
+    // misalignment before reading the header, so the stack address is never
+    // dereferenced.
+    int foreign = 0;
+    MYMALLOC_CHECK(my_realloc(reinterpret_cast<unsigned char*>(&foreign) + 1U, 16U) == nullptr);
 
     // Reallocating a FREED (dangling) pointer returns NULL instead of handing
     // free memory back as a live allocation, and leaves the list untouched.

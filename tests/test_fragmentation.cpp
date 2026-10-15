@@ -285,7 +285,8 @@ void test_scavenge_updates_stats() {
     my_heap_stats before = collect();
     MYMALLOC_CHECK(before.region_count == 2); // from scenario 5
 
-    void* big = my_malloc(16U * 1024U); // nothing fits -> scavenge -> fresh
+    void* big =
+        my_malloc(static_cast<std::size_t>(16) * 1024U); // nothing fits -> scavenge -> fresh
     MYMALLOC_CHECK(big != nullptr);
 
     my_heap_stats s = collect();
@@ -293,9 +294,10 @@ void test_scavenge_updates_stats() {
     MYMALLOC_CHECK(s.mapped_bytes == 5U * my_raw_page_size()); // 16416 -> 5 pages
     MYMALLOC_CHECK(s.block_count == 1 && s.live_blocks == 1 && s.free_blocks == 0);
     MYMALLOC_CHECK(s.live_bytes == s.mapped_bytes);
-    MYMALLOC_CHECK(s.requested_bytes == 16U * 1024U);
+    MYMALLOC_CHECK(s.requested_bytes == static_cast<std::size_t>(16) * 1024U);
     MYMALLOC_CHECK(s.payload_bytes == s.live_bytes - offset());
-    MYMALLOC_CHECK(s.internal_slack_bytes == s.payload_bytes - 16U * 1024U);
+    MYMALLOC_CHECK(s.internal_slack_bytes ==
+                   s.payload_bytes - static_cast<std::size_t>(16) * 1024U);
     MYMALLOC_CHECK(s.external_frag_permille == 0);
 
     my_free(big); // policy: free never shrinks; the region stays mapped
@@ -349,7 +351,7 @@ void test_long_cycles_bounded() {
     }
 
     // Endgame: one oversized request scavenges every free region away.
-    void* final = my_malloc(1U * 1024U * 1024U);
+    void* final = my_malloc(static_cast<std::size_t>(1) * 1024U * 1024U);
     MYMALLOC_CHECK(final != nullptr);
     my_heap_stats s = collect();
     MYMALLOC_CHECK(s.region_count == 1 && s.free_blocks == 0);

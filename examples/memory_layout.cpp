@@ -6,6 +6,7 @@
 // dumps and annotates /proc/self/maps.
 //
 // See docs/phase1_memory_model.md for the full study this demonstrates.
+#include <cinttypes>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -48,7 +49,9 @@ std::uintptr_t code_address_of(int (*function)(int)) {
 }
 
 void print_address(const char* region, const char* name, std::uintptr_t address) {
-    std::printf("[%-6s] %-26s %p\n", region, name, reinterpret_cast<void*>(address));
+    // Print the numeric address directly (via PRIxPTR) rather than casting the
+    // integer to void* for %p, which is an int-to-pointer round-trip.
+    std::printf("[%-6s] %-26s 0x%016" PRIxPTR "\n", region, name, address);
 }
 
 std::size_t query_page_size() {

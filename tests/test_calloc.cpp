@@ -41,13 +41,13 @@ int main() {
     void* pointer = my_calloc(10, 16);
     MYMALLOC_CHECK(pointer != nullptr);
     MYMALLOC_CHECK(reinterpret_cast<uintptr_t>(pointer) % alignment == 0U);
-    MYMALLOC_CHECK(all_zero(pointer, 10U * 16U) == true);
+    MYMALLOC_CHECK(all_zero(pointer, static_cast<std::size_t>(10) * 16U) == true);
     my_block_header* header = my_user_to_block(pointer);
     MYMALLOC_CHECK(my_block_valid(header) == 1);
     MYMALLOC_CHECK(my_block_is_free(header) == 0);
-    MYMALLOC_CHECK(my_block_payload_size(header) >= 10U * 16U);
+    MYMALLOC_CHECK(my_block_payload_size(header) >= static_cast<std::size_t>(10) * 16U);
     // Writable after zeroing.
-    std::memset(pointer, 0x5A, 10U * 16U);
+    std::memset(pointer, 0x5A, static_cast<std::size_t>(10) * 16U);
     my_free(pointer);
 
     // --- odd shapes: 1x1, many-by-1, 7 x 1000 ----------------------------
