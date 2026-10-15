@@ -11,6 +11,10 @@ compile_commands.json
 *.swp
 *.user
 
+# Python (scripts/)
+__pycache__/
+*.pyc
+
 # Local CMake overrides (never committed)
 CMakeUserPresets.json
 

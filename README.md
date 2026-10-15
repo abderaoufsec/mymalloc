@@ -9,20 +9,24 @@ See [docs/mymalloc_documentation.md](docs/mymalloc_documentation.md) for the
 architecture and [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md) for the full
 phase roadmap.
 
+Licensed under the [MIT License](LICENSE).
+
 ## Project layout
 
 ```text
 mymalloc/
 ├── CMakeLists.txt          # C++20 build (strict warnings, sanitizers, tests)
 ├── CMakePresets.json       # debug / release / asan / ubsan / asan-ubsan presets
+├── CHANGELOG.md            # release notes
+├── LICENSE                 # MIT
 ├── cmake/                  # warnings + sanitizer CMake modules
 ├── include/mymalloc/       # public headers (mymalloc.h, generated config.hpp)
 ├── src/                    # library implementation
 ├── tests/                  # CTest suite (dependency-free harness)
 ├── examples/               # sample programs
-├── scripts/                # developer tooling (check_format.py)
+├── scripts/                # developer tooling (check_format.py, run_clang_tidy.py)
 ├── docs/                   # documentation and roadmap
-└── .github/workflows/      # CI (build, test, sanitizers, format, cppcheck)
+└── .github/workflows/      # CI (build, test, sanitizers, format, cppcheck, clang-tidy)
 ```
 
 ## Target API
@@ -68,6 +72,15 @@ Build and test presets share the same names (`cmake --build --preset release`,
 `ctest --preset asan-ubsan`, ...). Presets place their output under
 `out/build/<preset>/` and leave the source tree clean.
 
+Each build/test preset also pins a CMake **configuration** (`Debug` or
+`Release`). Single-config generators (Ninja, Makefiles) derive it from
+`CMAKE_BUILD_TYPE` and ignore this, but **multi-config generators** — the
+Visual Studio generator CMake picks by default on Windows — need it explicitly:
+without it `CMAKE_BUILD_TYPE` is ignored and both `debug` and `release` would
+build the default configuration. So on Windows `cmake --build --preset release`
+compiles an optimized build and `ctest --preset release` runs the `Release`
+tests.
+
 ### Manual build (no presets)
 
 ```sh
@@ -99,6 +112,30 @@ All targets are compiled with strict warnings: `-Wall -Wextra -Wpedantic
 (`-Werror` optional via `MYMALLOC_WARNINGS_AS_ERRORS=ON`; MSVC uses
 `/W4 /permissive-`). CI builds with `MYMALLOC_WARNINGS_AS_ERRORS=ON`, so the
 tree is warning-free.
+
+## Continuous integration
+
+Every push and pull request runs the [CI workflow](.github/workflows/ci.yml).
+All jobs must be green:
+
+| Job                     | What it checks                                             |
+|-------------------------|------------------------------------------------------------|
+| `linux-gcc-debug`       | GCC, Debug, build + full CTest suite                       |
+| `linux-gcc-release`     | GCC, Release, build + full CTest suite                     |
+| `linux-clang-debug`     | Clang, Debug, build + full CTest suite                     |
+| `linux-clang-release`   | Clang, Release, build + full CTest suite                   |
+| `windows-msvc-debug`    | MSVC (Visual Studio generator), Debug, build + CTest       |
+| `windows-msvc-release`  | MSVC, **Release** (optimized) build + CTest                |
+| `sanitizers-asan-ubsan` | GCC + ASan + UBSan (`-fno-sanitize-recover`), full suite   |
+| `clang-format`          | `clang-format==23.1.3` (pinned) over all sources           |
+| `cppcheck`              | `cppcheck` warning/performance/portability over the DB     |
+| `clang-tidy`            | `.clang-tidy` over the whole compile database              |
+
+Windows/MSVC is CI-verified (Debug and Release). Sanitizers run on Linux; on
+Windows use WSL or the CI sanitizer job. Failed test jobs upload their
+`LastTest.log` as an artifact. Reproduce the Linux analysis jobs locally with
+`python scripts/run_clang_tidy.py out/build/<preset>/compile_commands.json`
+(clang-tidy) and the `cppcheck --project=...` command from the workflow.
 
 ## Testing
 
