@@ -30,6 +30,10 @@
 
 #include <mymalloc/block.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Links overlaid on a free block's payload (at my_block_to_user(block)).
 typedef struct my_free_links {
     struct my_free_links* prev; // previous entry in address order, or NULL
@@ -83,5 +87,9 @@ int my_free_list_valid(void);
 // bookkeeping (Phase 12) is unaffected, and fully-free TRACKED regions are
 // still reclaimed by the allocator's scavenge-on-acquire path.
 void my_free_list_clear(void);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // MYMALLOC_FREE_LIST_H

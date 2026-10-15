@@ -27,6 +27,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct my_block_header my_block_header;
 
 struct my_block_header {
@@ -126,5 +130,9 @@ int my_block_is_free(const my_block_header* block);
 // one more invariant: an ALLOCATED block must record a request that fits its
 // payload (free blocks ignore the requested field).
 int my_block_valid(const my_block_header* block);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // MYMALLOC_BLOCK_H

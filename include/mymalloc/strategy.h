@@ -12,6 +12,10 @@
 //
 // Not thread-safe (same policy as every phase so far): the selector is a
 // single process-wide variable with no synchronization.
+//
+// C++-only header: unlike the other public headers this one is NOT extern "C".
+// Its `enum my_strategy : unsigned int` uses a fixed underlying type, which is
+// not valid C, so include it from C++ translation units only.
 #ifndef MYMALLOC_STRATEGY_H
 #define MYMALLOC_STRATEGY_H
 

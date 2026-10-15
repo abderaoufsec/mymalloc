@@ -9,19 +9,25 @@ failing path, and (except where noted) a rejected call changes no state.
 process-global state with no synchronization, consistent across every phase;
 concurrent use requires external locking.
 
+**Linkage:** every header except `strategy.h` declares its functions inside
+`extern "C"` (guarded by `__cplusplus`), so the library links from C as well as
+C++. `strategy.h` is C++-only: its `enum my_strategy : unsigned int` uses a
+fixed underlying type, which is not valid C. Include it from C++ translation
+units only.
+
 **Headers** (all under `include/mymalloc/`):
 
-| Header         | Since   | Purpose                                        |
-|----------------|---------|------------------------------------------------|
-| `mymalloc.h`   | Phase 0 | Core `malloc`/`free`/`calloc`/`realloc` + version |
-| `raw_memory.h` | Phase 2 | Raw OS page acquisition/release                |
-| `alignment.h`  | Phase 3 | Overflow-safe alignment helpers                |
-| `block.h`      | Phase 4 | Block header, conversions, validation          |
-| `free_list.h`  | Phase 6 | Intrusive free list                            |
-| `strategy.h`   | Phase 9 | First-fit / best-fit selector                  |
-| `regions.h`    | Phase 12| Managed region registry                        |
-| `stats.h`      | Phase 13| Heap statistics / fragmentation                |
-| `debug.h`      | Phase 14| Diagnostics, ownership, canaries               |
+| Header         | Since   | Linkage | Purpose                            |
+|----------------|---------|---------|------------------------------------|
+| `mymalloc.h`   | Phase 0 | C       | Core `malloc`/`free`/`calloc`/`realloc` + version |
+| `raw_memory.h` | Phase 2 | C       | Raw OS page acquisition/release    |
+| `alignment.h`  | Phase 3 | C       | Overflow-safe alignment helpers    |
+| `block.h`      | Phase 4 | C       | Block header, conversions, validation |
+| `free_list.h`  | Phase 6 | C       | Intrusive free list                |
+| `strategy.h`   | Phase 9 | C++     | First-fit / best-fit selector      |
+| `regions.h`    | Phase 12| C       | Managed region registry            |
+| `stats.h`      | Phase 13| C       | Heap statistics / fragmentation    |
+| `debug.h`      | Phase 14| C       | Diagnostics, ownership, canaries   |
 
 ---
 
