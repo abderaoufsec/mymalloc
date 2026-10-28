@@ -131,8 +131,9 @@ test suite (see each `docs/phase*.md` § Invariants):
 
 ## Consolidated limitations
 
-1. **Not thread-safe** — process-global state, no synchronization (consistent
-   across every phase); callers must serialize.
+1. **Coarse-grained locking** — one process-wide mutex serializes every public
+   entry point, so concurrent calls are safe but do not scale; there are no
+   per-thread caches or lock-free paths.
 2. **Single-threaded performance model** — no per-thread caches; the cold path
    costs an `mmap` per fresh region (~26× a reuse hit, Phase 16). A
    slab/size-class cache is the recorded future optimization.

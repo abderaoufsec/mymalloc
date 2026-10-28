@@ -5,6 +5,33 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Arena remainder corruption**: the 16-page growth path left the carved
+  remainder's physical `prev` link NULL and charged the free remainder as live
+  bytes, breaking `my_check_heap`/ownership and inflating statistics. The
+  remainder now points back at the front block and is no longer counted live.
+- **Thread safety beyond the four allocators**: stats collection, the heap
+  checker, ownership queries, diagnostics, check toggling and the region
+  registry could race allocation. They now share the allocator mutex through
+  lock-assumed internals, and `my_owns` has a shared body so `my_canary_ok`
+  does not self-deadlock.
+
+### Added
+
+- **`test_threads`**: concurrent malloc/free/realloc, introspection racing
+  mutation, and strategy toggling.
+- **TSan preset and CI job** (`MYMALLOC_SANITIZER=thread`).
+
+### Changed
+
+- The spinlock was replaced by a process-wide `std::mutex` with an RAII guard;
+  `realloc`'s move path now runs entirely under one lock hold.
+- Public headers document the new locking policy; `free_list.h`,
+  `block.h` and `alignment.h` remain unsynchronized internals.
+
 ## [0.1.1] - 2026-10-15
 
 ### Fixed
