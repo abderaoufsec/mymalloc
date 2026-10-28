@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(mymalloc
-        VERSION 0.1.0
+        VERSION 0.1.1
         DESCRIPTION "Educational user-space memory allocator"
         HOMEPAGE_URL "https://github.com/abderaoufsec/mymalloc"
         LANGUAGES CXX)
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 # ---------------------------------------------------------------------------
 # Options
@@ -62,14 +65,52 @@ add_library(mymalloc::mymalloc ALIAS mymalloc)
 target_include_directories(mymalloc
     PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>")
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 
+target_compile_features(mymalloc PUBLIC cxx_std_20)
 target_link_libraries(mymalloc PUBLIC Threads::Threads)
 
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/include/mymalloc/config.hpp.in"
     "${CMAKE_CURRENT_BINARY_DIR}/generated/include/mymalloc/config.hpp"
     @ONLY)
+
+# ---------------------------------------------------------------------------
+# Installation and package export
+# ---------------------------------------------------------------------------
+install(TARGETS mymalloc
+        EXPORT mymallocTargets
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/mymalloc"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+        FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/include/mymalloc/config.hpp"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mymalloc")
+
+install(EXPORT mymallocTargets
+        FILE mymallocTargets.cmake
+        NAMESPACE mymalloc::
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mymalloc")
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/mymallocConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/mymallocConfig.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mymalloc")
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/mymallocConfigVersion.cmake"
+    VERSION "${mymalloc_VERSION}"
+    COMPATIBILITY SameMajorVersion)
+
+install(FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/mymallocConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/mymallocConfigVersion.cmake"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mymalloc")
 
 # ---------------------------------------------------------------------------
 # Tests and examples

@@ -93,6 +93,23 @@ Example:
 > ship the ASan/UBSan/TSan runtimes for its toolchains, so on Windows use WSL
 > or rely on the CI sanitizer jobs (ASan + UBSan and TSan on Ubuntu).
 
+### Installing and consuming the package
+
+```sh
+cmake --install out/build/release --prefix /path/to/prefix
+```
+
+This installs the static library, every public header (including the generated
+`config.hpp`), and a CMake package. Consumers use the exported target:
+
+```cmake
+find_package(mymalloc 0.1 CONFIG REQUIRED)
+target_link_libraries(app PRIVATE mymalloc::mymalloc)
+```
+
+`mymalloc::mymalloc` carries the C++20 and `Threads::Threads` requirements, so
+consumers do not repeat them.
+
 ## Strict warnings
 
 All targets are compiled with strict warnings: `-Wall -Wextra -Wpedantic

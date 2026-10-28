@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `realloc`'s move path now runs entirely under one lock hold.
 - Public headers document the new locking policy; `free_list.h`,
   `block.h` and `alignment.h` remain unsynchronized internals.
+- **Installable CMake package**: `install` rules now ship the library, headers
+  and generated `config.hpp`, plus an exported `mymalloc::mymalloc` target and
+  `find_package(mymalloc CONFIG)` package files. The project version is 0.1.1,
+  matching the changelog, and the target advertises C++20 and Threads.
 
 ## [0.1.1] - 2026-10-15
 
