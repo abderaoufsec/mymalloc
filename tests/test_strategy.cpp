@@ -40,18 +40,6 @@ void* acquire_region(std::size_t index, std::size_t size) {
     return region;
 }
 
-void teardown() {
-    my_free_list_clear();
-    for (std::size_t i = 0; i < sizeof(g_regions) / sizeof(g_regions[0]); ++i) {
-        if (g_regions[i] != nullptr) {
-            my_raw_release(g_regions[i], g_region_sizes[i]);
-            g_regions[i] = nullptr;
-            g_region_sizes[i] = 0;
-        }
-    }
-    my_set_strategy(MY_STRATEGY_FIRST_FIT); // restore the default
-}
-
 // Builds `count` independent free blocks of the given sizes (bytes, each a
 // multiple of the default alignment) inside freshly acquired regions and
 // lists them all. Returns false if any region could not be acquired.
@@ -196,30 +184,36 @@ void test_best_fit_preserves_large_block() {
     my_free_list_clear();
     const std::size_t page = my_raw_page_size();
 
-    void* big = my_malloc(page);  // page payload -> 2-page region (8192)
-    void* small = my_malloc(64U); // -> 1-page region (4096)
-    MYMALLOC_CHECK(big != nullptr && small != nullptr && big != small);
-    if (big == nullptr || small == nullptr) {
+    void* big_region = my_raw_acquire(page * 8U);   // 32 KiB block
+    void* small_region = my_raw_acquire(page * 2U); // 8 KiB block
+    MYMALLOC_CHECK(big_region != nullptr && small_region != nullptr);
+    if (big_region == nullptr || small_region == nullptr) {
         return;
     }
-    my_free(big);
-    my_free(small);
+    auto* small_block = reinterpret_cast<my_block_header*>(small_region);
+    auto* big_block = reinterpret_cast<my_block_header*>(big_region);
+    MYMALLOC_CHECK(my_block_init(small_block, page * 2U, 1 /* free */, nullptr, nullptr) == 1);
+    MYMALLOC_CHECK(my_block_init(big_block, page * 8U, 1 /* free */, nullptr, nullptr) == 1);
+    MYMALLOC_CHECK(my_free_list_insert(small_block) == 1);
+    MYMALLOC_CHECK(my_free_list_insert(big_block) == 1);
     MYMALLOC_CHECK(my_free_list_count() == 2); // two independent free blocks
 
     my_set_strategy(MY_STRATEGY_BEST_FIT);
     void* picked = my_malloc(64U); // fits both; best fit must take the 4096 one
     MYMALLOC_CHECK(picked != nullptr);
     if (picked != nullptr) {
-        // The 2-page block survived untouched: it is the only block >= 2 pages.
-        my_block_header* const still_big = my_free_list_best_fit(2U * page);
+        // The larger block survived untouched.
+        my_block_header* const still_big = my_free_list_best_fit(page * 8U);
         MYMALLOC_CHECK(still_big != nullptr);
         if (still_big != nullptr) {
-            MYMALLOC_CHECK(still_big->size >= 2U * page);
+            MYMALLOC_CHECK(still_big->size == page * 8U);
         }
         my_free(picked);
     }
     MYMALLOC_CHECK(my_free_list_valid() == 1);
-    teardown();
+    my_free_list_clear();
+    my_raw_release(small_region, page * 2U);
+    my_raw_release(big_region, page * 8U);
 }
 
 // Under the DEFAULT (first fit) the same cycle still succeeds and leaves a
@@ -229,23 +223,32 @@ void test_first_fit_default_reuses() {
     my_free_list_clear();
     my_set_strategy(MY_STRATEGY_FIRST_FIT);
 
-    void* a = my_malloc(128U);
-    void* b = my_malloc(256U);
-    MYMALLOC_CHECK(a != nullptr && b != nullptr && a != b);
-    if (a == nullptr || b == nullptr) {
+    const std::size_t page = my_raw_page_size();
+
+    // Two independent free blocks (separate raw regions, so no coalescing).
+    void* ra = my_raw_acquire(page * 2U);
+    void* rb = my_raw_acquire(page * 4U);
+    MYMALLOC_CHECK(ra != nullptr && rb != nullptr);
+    if (ra == nullptr || rb == nullptr) {
         return;
     }
-    my_free(a);
-    my_free(b);
+    auto* fa = reinterpret_cast<my_block_header*>(ra);
+    auto* fb = reinterpret_cast<my_block_header*>(rb);
+    MYMALLOC_CHECK(my_block_init(fa, page * 2U, 1 /* free */, nullptr, nullptr) == 1);
+    MYMALLOC_CHECK(my_block_init(fb, page * 4U, 1 /* free */, nullptr, nullptr) == 1);
+    MYMALLOC_CHECK(my_free_list_insert(fa) == 1);
+    MYMALLOC_CHECK(my_free_list_insert(fb) == 1);
     MYMALLOC_CHECK(my_free_list_count() == 2);
 
-    void* c = my_malloc(128U); // reused first fit from the list
+    void* c = my_malloc(128U); // first fit reuses a listed block
     MYMALLOC_CHECK(c != nullptr);
     if (c != nullptr) {
         my_free(c);
     }
     MYMALLOC_CHECK(my_free_list_valid() == 1);
-    teardown();
+    my_free_list_clear();
+    my_raw_release(ra, page * 2U);
+    my_raw_release(rb, page * 4U);
 }
 
 } // namespace

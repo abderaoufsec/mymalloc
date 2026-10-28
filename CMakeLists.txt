@@ -37,6 +37,9 @@ include(MymallocSanitizers)
 mymalloc_apply_warnings()
 mymalloc_apply_sanitizers()
 
+# std::mutex (the allocator lock) needs pthread on POSIX platforms.
+find_package(Threads REQUIRED)
+
 # ---------------------------------------------------------------------------
 # Library target
 #
@@ -59,6 +62,8 @@ target_include_directories(mymalloc
     PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>")
+
+target_link_libraries(mymalloc PUBLIC Threads::Threads)
 
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/include/mymalloc/config.hpp.in"

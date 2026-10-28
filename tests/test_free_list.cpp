@@ -137,7 +137,10 @@ int main() {
 
     void* p1 = my_malloc(64);
     MYMALLOC_CHECK(p1 != nullptr);
-    MYMALLOC_CHECK(my_free_list_count() == 0); // fresh acquisition, nothing free
+    // A fresh acquisition carves the request from the front of the region and
+    // publishes the worthwhile remainder back to the free list (Phase 7), so
+    // exactly one free block is listed right after the acquisition.
+    MYMALLOC_CHECK(my_free_list_count() == 1);
     my_free(p1);
     MYMALLOC_CHECK(my_free_list_count() == 1);
     MYMALLOC_CHECK(my_free_list_valid() == 1);
@@ -168,7 +171,9 @@ int main() {
     // dangling pointers yet (Phase 14), so the test must not touch them.
     void* bigp = my_malloc(2 * 1024 * 1024); // 2 MiB > the listed block
     MYMALLOC_CHECK(bigp != nullptr);
-    MYMALLOC_CHECK(my_free_list_count() == 0); // the small region was reclaimed
+    // Scavenge-on-acquire reclaimed the fully-free small region, but carving
+    // bigp out of its fresh 2 MiB region leaves the 2 MiB remainder listed.
+    MYMALLOC_CHECK(my_free_list_count() == 1);
     my_free(bigp);
     // Freeing does NOT shrink the heap (Phase 12): the 2 MiB block stays
     // listed until the next fresh acquisition scavenges it.

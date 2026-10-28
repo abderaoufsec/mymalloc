@@ -220,19 +220,27 @@ void test_refusals() {
 void test_split_reuse() {
     my_free_list_clear();
 
-    // One oversized free block (a whole page region, payload 4064).
-    void* a = my_malloc(4096U - my_block_user_offset());
-    MYMALLOC_CHECK(a != nullptr);
-    if (a == nullptr) {
+    // Craft a known oversized free block: a 16-page region as one free block.
+    // Using a raw-acquired, self-init block keeps the size deterministic
+    // regardless of the allocator's 16-page arena minimum.
+    const std::size_t page = my_raw_page_size();
+    const std::size_t block_bytes = page * 16U; // 64 KiB on 4 KiB pages
+    void* region = my_raw_acquire(block_bytes);
+    MYMALLOC_CHECK(region != nullptr);
+    if (region == nullptr) {
         return;
     }
-    my_free(a);
+    auto* block = reinterpret_cast<my_block_header*>(region);
+    MYMALLOC_CHECK(my_block_init(block, block_bytes, 1 /* free */, nullptr, nullptr) == 1);
+    MYMALLOC_CHECK(my_free_list_insert(block) == 1);
+    MYMALLOC_CHECK(my_free_list_count() == 1);
 
     // A much smaller request splits the oversized free block: the front is
     // allocated, the remainder stays listed and is reusable.
     void* b = my_malloc(16U);
     MYMALLOC_CHECK(b != nullptr);
     if (b == nullptr) {
+        my_raw_release(region, block_bytes);
         return;
     }
     my_block_header* const front = my_user_to_block(b);
@@ -241,16 +249,22 @@ void test_split_reuse() {
     my_block_header* const remainder = front->next;
     MYMALLOC_CHECK(remainder != nullptr);
     if (remainder == nullptr) {
+        my_free(b);
+        my_free_list_clear();
+        my_raw_release(region, block_bytes);
         return;
     }
     MYMALLOC_CHECK(remainder->free == 1); // remainder stays free
-    MYMALLOC_CHECK(remainder->size == (4096U - (my_block_user_offset() + 16U)));
+    MYMALLOC_CHECK(remainder->size == block_bytes - (my_block_user_offset() + 16U));
     MYMALLOC_CHECK(my_free_list_valid() == 1);
 
     // Reuse again: a 64-byte request fits in the listed remainder (no grow).
     void* c = my_malloc(64U);
     MYMALLOC_CHECK(c != nullptr);
     if (c == nullptr) {
+        my_free(b);
+        my_free_list_clear();
+        my_raw_release(region, block_bytes);
         return;
     }
     MYMALLOC_CHECK(reinterpret_cast<std::uintptr_t>(c) >
@@ -260,36 +274,46 @@ void test_split_reuse() {
     my_free(b);
     my_free(c);
     my_free_list_clear();
+    my_raw_release(region, block_bytes);
 }
 
 void test_remainder_too_small() {
     my_free_list_clear();
 
-    // A 2-page region gives a 8192-byte block (payload 8160).
-    void* big = my_malloc(8192U - my_block_user_offset());
-    MYMALLOC_CHECK(big != nullptr);
-    if (big == nullptr) {
+    // Craft a known free block: a 16-page region as one free block.
+    const std::size_t page = my_raw_page_size();
+    const std::size_t block_bytes = page * 16U; // 64 KiB on 4 KiB pages
+    void* region = my_raw_acquire(block_bytes);
+    MYMALLOC_CHECK(region != nullptr);
+    if (region == nullptr) {
         return;
     }
-    my_free(big);
+    auto* block = reinterpret_cast<my_block_header*>(region);
+    MYMALLOC_CHECK(my_block_init(block, block_bytes, 1 /* free */, nullptr, nullptr) == 1);
+    MYMALLOC_CHECK(my_free_list_insert(block) == 1);
+    MYMALLOC_CHECK(my_free_list_count() == 1);
 
     // Request size chosen so the leftover is exactly below the worthwhile
     // remainder threshold -> the block is reused whole, NOT split.
     const std::size_t min_remainder = my_block_user_offset() + sizeof(my_free_links);
-    const std::size_t request = 8192U - min_remainder + 8U; // remainder < threshold
+    const std::size_t request =
+        block_bytes - my_block_user_offset() - min_remainder + 8U; // remainder < threshold
     void* p = my_malloc(request);
     MYMALLOC_CHECK(p != nullptr);
     if (p == nullptr) {
+        my_free_list_clear();
+        my_raw_release(region, block_bytes);
         return;
     }
-    my_block_header* const block = my_user_to_block(p);
-    MYMALLOC_CHECK(block->size == 8192U);   // reused whole (payload slack kept)
-    MYMALLOC_CHECK(block->next == nullptr); // no remainder block created
-    MYMALLOC_CHECK(block->free == 0);
-    MYMALLOC_CHECK(my_free_list_count() == 0);
+    my_block_header* const blk = my_user_to_block(p);
+    MYMALLOC_CHECK(blk->size == block_bytes);   // reused whole (payload slack kept)
+    MYMALLOC_CHECK(blk->next == nullptr);        // no remainder block created
+    MYMALLOC_CHECK(blk->free == 0);
+    MYMALLOC_CHECK(my_free_list_count() == 0);   // the only free block is now live
 
     my_free(p);
     my_free_list_clear();
+    my_raw_release(region, block_bytes);
 }
 
 } // namespace

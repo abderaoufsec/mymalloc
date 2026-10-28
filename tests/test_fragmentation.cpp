@@ -1,5 +1,4 @@
-// Phase 13 test: heap statistics and fragmentation (<mymalloc/stats.h>)
-// against the design in docs/phase13_fragmentation.md: requested/allocated/
+// Heap statistics and fragmentation (<mymalloc/stats.h>): requested/allocated/
 // free bytes, block counts, internal vs external fragmentation, and the
 // collect contract (1 + filled on a consistent heap, 0 + untouched on
 // refusal or inconsistency).
@@ -17,8 +16,7 @@
 namespace {
 
 // Everything below is computed from the platform's real constants (header
-// offset, alignment, page size) so the suite holds on any LP64 target, not
-// just x86-64's 32/32/4096.
+// offset, alignment, page size) so the suite holds on any LP64 target.
 std::size_t offset() {
     return my_block_user_offset();
 }
@@ -27,6 +25,17 @@ std::size_t align_up(std::size_t bytes) {
     std::size_t aligned = 0;
     MYMALLOC_CHECK(my_align_up_size(bytes, my_default_alignment(), &aligned) == 1);
     return aligned;
+}
+
+// The allocator maps at least 16 pages per fresh arena, so every scenario
+// starts from this region size instead of one page.
+std::size_t arena_bytes() {
+    return my_raw_page_size() * 16U;
+}
+
+std::size_t align_to_page(std::size_t bytes) {
+    const std::size_t page = my_raw_page_size();
+    return ((bytes + page - 1U) / page) * page;
 }
 
 // Truncated permille, exactly like ratio_permille in src/stats.cpp.
@@ -70,7 +79,7 @@ void test_empty_and_refusals() {
     MYMALLOC_CHECK(my_heap_stats_collect(nullptr) == 0);
 
     // A foreign region acquired directly through the raw layer is NOT
-    // tracked (Phase 12 ownership), so it must not appear in any statistic.
+    // tracked, so it must not appear in any statistic.
     void* foreign = my_raw_acquire(my_raw_page_size());
     MYMALLOC_CHECK(foreign != nullptr);
     my_heap_stats after = {};
@@ -80,41 +89,41 @@ void test_empty_and_refusals() {
 }
 
 // --- scenario 2: one tiny allocation on a fresh heap ----------------------
-// The fresh path hands the whole page-rounded region to the first block
-// (Phase 5 model), so a my_malloc(1) carries nearly a full page of internal
-// fragmentation until the block is reused in smaller pieces.
+// The fresh path carves the request from the front of a 16-page arena and
+// leaves the remainder as one free block, so a my_malloc(1) has a small live
+// block and a large free remainder in the same region.
 void test_single_allocation_page_math() {
     void* p = my_malloc(1);
     MYMALLOC_CHECK(p != nullptr);
 
+    const std::size_t region_bytes = arena_bytes();
     my_heap_stats s = collect();
     MYMALLOC_CHECK(s.region_count == 1);
-    MYMALLOC_CHECK(s.mapped_bytes == my_raw_page_size());
-    MYMALLOC_CHECK(s.block_count == 1 && s.live_blocks == 1);
-    MYMALLOC_CHECK(s.live_bytes == my_raw_page_size());
-    MYMALLOC_CHECK(s.free_blocks == 0 && s.free_bytes == 0 && s.largest_free_bytes == 0);
+    MYMALLOC_CHECK(s.mapped_bytes == region_bytes);
+    MYMALLOC_CHECK(s.block_count == 2 && s.live_blocks == 1 && s.free_blocks == 1);
+    MYMALLOC_CHECK(s.live_bytes == align_up(1) + offset());
+    MYMALLOC_CHECK(s.free_bytes == region_bytes - s.live_bytes);
     MYMALLOC_CHECK(s.requested_bytes == 1);
-    MYMALLOC_CHECK(s.payload_bytes == my_raw_page_size() - offset());
-    MYMALLOC_CHECK(s.internal_slack_bytes == s.payload_bytes - 1);
-    MYMALLOC_CHECK(s.overhead_bytes == offset());
-    MYMALLOC_CHECK(s.external_frag_permille == 0); // nothing free at all
-    MYMALLOC_CHECK(s.internal_frag_permille == permille(s.internal_slack_bytes, s.payload_bytes));
-    MYMALLOC_CHECK(s.internal_frag_permille >= 990U); // ~the whole page is slack
+    MYMALLOC_CHECK(s.payload_bytes == align_up(1));
+    MYMALLOC_CHECK(s.internal_slack_bytes == align_up(1) - 1U);
+    MYMALLOC_CHECK(s.overhead_bytes == 2U * offset());
+    MYMALLOC_CHECK(s.external_frag_permille == 0);
+    MYMALLOC_CHECK(s.internal_frag_permille == permille(align_up(1) - 1U, align_up(1)));
 
     // my_region_at: bounds and refusal (iteration helper for the walk).
     my_region r = {};
-    MYMALLOC_CHECK(my_region_at(0, &r) == 1 && r.bytes == my_raw_page_size());
+    MYMALLOC_CHECK(my_region_at(0, &r) == 1 && r.bytes == region_bytes);
     MYMALLOC_CHECK(my_region_at(1, &r) == 0);
     MYMALLOC_CHECK(my_region_at(0, nullptr) == 0);
 
-    // free() never shrinks the heap (Phase 12 policy): the region stays
-    // mapped and becomes one big free block.
+    // free() never shrinks the heap: the region stays mapped and becomes one
+    // big free block.
     my_free(p);
     my_heap_stats f = collect();
-    MYMALLOC_CHECK(f.region_count == 1 && f.mapped_bytes == my_raw_page_size());
+    MYMALLOC_CHECK(f.region_count == 1 && f.mapped_bytes == region_bytes);
     MYMALLOC_CHECK(f.block_count == 1 && f.free_blocks == 1);
-    MYMALLOC_CHECK(f.free_bytes == my_raw_page_size());
-    MYMALLOC_CHECK(f.largest_free_bytes == my_raw_page_size());
+    MYMALLOC_CHECK(f.free_bytes == region_bytes);
+    MYMALLOC_CHECK(f.largest_free_bytes == region_bytes);
     MYMALLOC_CHECK(f.live_bytes == 0 && f.requested_bytes == 0 && f.internal_slack_bytes == 0);
     MYMALLOC_CHECK(f.external_frag_permille == 0 && f.internal_frag_permille == 0);
 }
@@ -124,7 +133,8 @@ void test_single_allocation_page_math() {
 // - request, live/free bytes tile the region, and free() merges everything
 // back into one block.
 void test_padding_sweep() {
-    MYMALLOC_CHECK(collect().free_bytes == my_raw_page_size()); // scenario 2's region
+    const std::size_t region_bytes = arena_bytes();
+    MYMALLOC_CHECK(collect().free_bytes == region_bytes); // scenario 2's region
     const std::size_t sizes[] = {1U, 15U, 31U, 32U, 33U, 63U, 64U, 100U, 1000U};
     for (std::size_t size : sizes) {
         void* p = my_malloc(size);
@@ -138,43 +148,47 @@ void test_padding_sweep() {
         MYMALLOC_CHECK(s.payload_bytes == payload);
         MYMALLOC_CHECK(s.internal_slack_bytes == payload - size);
         MYMALLOC_CHECK(s.free_blocks == 1);
-        MYMALLOC_CHECK(s.free_bytes == my_raw_page_size() - s.live_bytes);
+        MYMALLOC_CHECK(s.free_bytes == region_bytes - s.live_bytes);
         MYMALLOC_CHECK(s.external_frag_permille == 0); // one free block = no external
         MYMALLOC_CHECK(s.internal_frag_permille == permille(payload - size, payload));
 
         my_free(p);
         my_heap_stats f = collect();
         MYMALLOC_CHECK(f.block_count == 1 && f.free_blocks == 1);
-        MYMALLOC_CHECK(f.free_bytes == my_raw_page_size()); // fully coalesced again
+        MYMALLOC_CHECK(f.free_bytes == region_bytes); // fully coalesced again
         MYMALLOC_CHECK(f.requested_bytes == 0 && f.internal_slack_bytes == 0);
     }
 }
 
 // --- scenario 4: external fragmentation workload --------------------------
-// Eight 512-byte blocks tile one page exactly; freeing every other block
-// turns uniform free space into the classic checkerboard, driving the
-// external ratio through 750/500/333/142 back to 0 as coalescing recovers.
+// Eight 512-byte blocks plus a filler tile one 16-page arena exactly.
+// Freeing every other small block turns uniform free space into the classic
+// checkerboard, driving the external ratio through 750/500/333/142 back to 0
+// as coalescing recovers; the filler keeps the rest of the arena live so the
+// numbers stay exact.
 void test_fragmentation_workload() {
+    const std::size_t region_bytes = arena_bytes();
     const std::size_t block = 512U;               // 480 payload + 32 header
-    const std::size_t request = block - offset(); // tiles the page 8 times
-    MYMALLOC_CHECK(my_raw_page_size() % block == 0U);
+    const std::size_t request = block - offset(); // tiles the arena exactly
+    MYMALLOC_CHECK(region_bytes % block == 0U);
     MYMALLOC_CHECK(block % my_default_alignment() == 0U);
-
-    // Own the whole region, then free it: one 4096-byte free block.
-    void* owner = my_malloc(my_raw_page_size() - offset());
-    MYMALLOC_CHECK(owner != nullptr);
-    my_free(owner);
-    MYMALLOC_CHECK(collect().free_bytes == my_raw_page_size());
 
     void* p[8] = {};
     for (int i = 0; i < 8; ++i) {
         p[i] = my_malloc(request);
         MYMALLOC_CHECK(p[i] != nullptr);
     }
+    // Consume the remaining arena as one live filler block.
+    const std::size_t filler_total = region_bytes - 8U * block;
+    MYMALLOC_CHECK(filler_total > offset());
+    const std::size_t filler_request = filler_total - offset();
+    void* filler = my_malloc(filler_request);
+    MYMALLOC_CHECK(filler != nullptr);
+
     my_heap_stats full = collect();
-    MYMALLOC_CHECK(full.block_count == 8 && full.live_blocks == 8);
-    MYMALLOC_CHECK(full.live_bytes == my_raw_page_size() && full.free_bytes == 0);
-    MYMALLOC_CHECK(full.requested_bytes == 8U * request);
+    MYMALLOC_CHECK(full.block_count == 9 && full.live_blocks == 9);
+    MYMALLOC_CHECK(full.live_bytes == region_bytes && full.free_bytes == 0);
+    MYMALLOC_CHECK(full.requested_bytes == 8U * request + filler_request);
     MYMALLOC_CHECK(full.external_frag_permille == 0 && full.internal_slack_bytes == 0);
 
     // Checkerboard: free the odds -> free space is uniform but fragmented.
@@ -184,12 +198,11 @@ void test_fragmentation_workload() {
     my_heap_stats checker = collect();
     MYMALLOC_CHECK(checker.free_blocks == 4 && checker.free_bytes == 4U * block);
     MYMALLOC_CHECK(checker.largest_free_bytes == block);
-    MYMALLOC_CHECK(checker.live_blocks == 4 && checker.live_bytes == 4U * block);
+    MYMALLOC_CHECK(checker.live_blocks == 5 && checker.live_bytes == region_bytes - 4U * block);
     MYMALLOC_CHECK(checker.external_frag_permille == 750U);
     MYMALLOC_CHECK(checker.internal_slack_bytes == 0);
 
     // Free the evens one by one: each merge grows the largest free block.
-    // Free bytes after each step: 2560, 3072, 3584 (live 4, 2, 1 blocks).
     my_free(p[0]); // merges with p[1] -> 1024 contiguous + 3 stranded odds
     my_heap_stats s0 = collect();
     MYMALLOC_CHECK(s0.largest_free_bytes == 2U * block);
@@ -208,25 +221,29 @@ void test_fragmentation_workload() {
     MYMALLOC_CHECK(s4.free_bytes == 7U * block && s4.free_blocks == 2);
     MYMALLOC_CHECK(s4.external_frag_permille == 142U);
 
-    my_free(p[6]); // last live block: full merge with p[7]
+    my_free(p[6]); // last live small block: full merge with p[7]
     my_heap_stats done = collect();
-    MYMALLOC_CHECK(done.block_count == 1 && done.free_blocks == 1);
-    MYMALLOC_CHECK(done.free_bytes == my_raw_page_size());
-    MYMALLOC_CHECK(done.live_blocks == 0 && done.requested_bytes == 0);
+    MYMALLOC_CHECK(done.block_count == 2 && done.free_blocks == 1);
+    MYMALLOC_CHECK(done.free_bytes == 8U * block);
+    MYMALLOC_CHECK(done.live_blocks == 1 && done.requested_bytes == filler_request);
     MYMALLOC_CHECK(done.external_frag_permille == 0); // fully recovered
+
+    my_free(filler); // the whole arena is free again for the next scenario
+    MYMALLOC_CHECK(collect().free_bytes == region_bytes);
 }
 
 // --- scenario 5: realloc keeps the recorded request honest ----------------
 // In-place shrink/grow must update requested_bytes; a move must retire the
-// old block's request and start the new one. Also exposes that two
-// fully-free regions still read as external fragmentation (free space
-// cannot flow across a region boundary) until scavenge collapses them.
+// old block's request and start the new one. A request larger than the arena
+// forces the move path.
 void test_realloc_tracks_request() {
-    void* r = my_malloc(64); // reuses the free page: 96 live + 4000 free
+    const std::size_t region_bytes = arena_bytes();
+
+    void* r = my_malloc(64);
     MYMALLOC_CHECK(r != nullptr);
     my_heap_stats s0 = collect();
     MYMALLOC_CHECK(s0.requested_bytes == 64 && s0.internal_slack_bytes == 0);
-    MYMALLOC_CHECK(s0.live_bytes == 64U + offset() && s0.free_bytes == 4096U - 96U);
+    MYMALLOC_CHECK(s0.live_bytes == 64U + offset() && s0.free_bytes == region_bytes - 96U);
 
     // Grow in place by absorbing the free upper neighbor; the request moves
     // to 1000, the payload rounds up -> alignment slack appears.
@@ -237,14 +254,14 @@ void test_realloc_tracks_request() {
     MYMALLOC_CHECK(s1.requested_bytes == 1000 && s1.payload_bytes == payload_a);
     MYMALLOC_CHECK(s1.internal_slack_bytes == payload_a - 1000U);
     MYMALLOC_CHECK(s1.live_bytes == payload_a + offset());
-    MYMALLOC_CHECK(s1.free_bytes == my_raw_page_size() - s1.live_bytes);
+    MYMALLOC_CHECK(s1.free_bytes == region_bytes - s1.live_bytes);
 
     // Shrink in place: slack is carved back into the free list.
     r = my_realloc(r, 32);
     MYMALLOC_CHECK(r != nullptr);
     my_heap_stats s2 = collect();
     MYMALLOC_CHECK(s2.requested_bytes == 32 && s2.internal_slack_bytes == 0);
-    MYMALLOC_CHECK(s2.live_bytes == 64U && s2.free_bytes == 4032U);
+    MYMALLOC_CHECK(s2.live_bytes == 64U && s2.free_bytes == region_bytes - 64U);
 
     // Grow in place again: 2000 rounds up to a fresh payload.
     r = my_realloc(r, 2000);
@@ -255,28 +272,33 @@ void test_realloc_tracks_request() {
     MYMALLOC_CHECK(s3.internal_slack_bytes == payload_b - 2000U);
     MYMALLOC_CHECK(s3.internal_frag_permille == permille(payload_b - 2000U, payload_b));
     MYMALLOC_CHECK(s3.live_bytes == payload_b + offset());
-    MYMALLOC_CHECK(s3.free_bytes == my_raw_page_size() - s3.live_bytes);
+    MYMALLOC_CHECK(s3.free_bytes == region_bytes - s3.live_bytes);
 
-    // Too big for the region: the move path frees the old block (retiring
-    // its request) and a fresh region serves the new one. The fresh region
-    // is page-rounded: total 5008+32 -> 2 pages, so 3 pages are mapped.
-    r = my_realloc(r, 5000);
+    // Too big for the arena: the move path frees the old block (retiring its
+    // request) and a fresh region serves the new one. The old 16-page region
+    // stays mapped but fully free.
+    const std::size_t moved_request = 70000U;
+    r = my_realloc(r, moved_request);
     MYMALLOC_CHECK(r != nullptr);
+    const std::size_t moved_total = align_up(moved_request) + offset();
+    const std::size_t moved_region =
+        align_to_page(moved_total > region_bytes ? moved_total : region_bytes);
     my_heap_stats s4 = collect();
-    MYMALLOC_CHECK(s4.region_count == 2 && s4.mapped_bytes == 3U * my_raw_page_size());
-    MYMALLOC_CHECK(s4.block_count == 2 && s4.live_blocks == 1 && s4.free_blocks == 1);
-    MYMALLOC_CHECK(s4.requested_bytes == 5000); // only the surviving request
-    MYMALLOC_CHECK(s4.live_bytes == 2U * my_raw_page_size());
-    MYMALLOC_CHECK(s4.free_bytes == my_raw_page_size());
-    MYMALLOC_CHECK(s4.external_frag_permille == 0);
+    MYMALLOC_CHECK(s4.region_count == 2 && s4.mapped_bytes == region_bytes + moved_region);
+    MYMALLOC_CHECK(s4.block_count == 3 && s4.live_blocks == 1 && s4.free_blocks == 2);
+    MYMALLOC_CHECK(s4.requested_bytes == moved_request); // only the surviving request
+    MYMALLOC_CHECK(s4.live_bytes == moved_total);
+    MYMALLOC_CHECK(s4.free_bytes == region_bytes + (moved_region - moved_total));
+    MYMALLOC_CHECK(s4.largest_free_bytes == region_bytes);
 
     // Free it: both regions are now fully free but isolated from each
     // other, so the free bytes read as fragmented across region borders.
     my_free(r);
     my_heap_stats s5 = collect();
-    MYMALLOC_CHECK(s5.free_blocks == 2 && s5.free_bytes == 3U * my_raw_page_size());
-    MYMALLOC_CHECK(s5.largest_free_bytes == 2U * my_raw_page_size());
-    MYMALLOC_CHECK(s5.external_frag_permille == 333U); // 4096 of 12288 stranded
+    MYMALLOC_CHECK(s5.free_blocks == 2 && s5.free_bytes == region_bytes + moved_region);
+    MYMALLOC_CHECK(s5.largest_free_bytes == moved_region);
+    MYMALLOC_CHECK(s5.external_frag_permille ==
+                   permille(region_bytes, region_bytes + moved_region));
     MYMALLOC_CHECK(s5.requested_bytes == 0);
 }
 
@@ -285,17 +307,20 @@ void test_scavenge_updates_stats() {
     my_heap_stats before = collect();
     MYMALLOC_CHECK(before.region_count == 2); // from scenario 5
 
-    void* big = my_malloc(16U * 1024U); // nothing fits -> scavenge -> fresh
+    const std::size_t request = 100000U; // larger than either free region
+    void* big = my_malloc(request);
     MYMALLOC_CHECK(big != nullptr);
 
+    const std::size_t total = align_up(request) + offset();
+    const std::size_t region_bytes = align_to_page(total);
     my_heap_stats s = collect();
-    MYMALLOC_CHECK(s.region_count == 1);                       // both old regions released
-    MYMALLOC_CHECK(s.mapped_bytes == 5U * my_raw_page_size()); // 16416 -> 5 pages
-    MYMALLOC_CHECK(s.block_count == 1 && s.live_blocks == 1 && s.free_blocks == 0);
-    MYMALLOC_CHECK(s.live_bytes == s.mapped_bytes);
-    MYMALLOC_CHECK(s.requested_bytes == 16U * 1024U);
-    MYMALLOC_CHECK(s.payload_bytes == s.live_bytes - offset());
-    MYMALLOC_CHECK(s.internal_slack_bytes == s.payload_bytes - 16U * 1024U);
+    MYMALLOC_CHECK(s.region_count == 1); // both old regions released
+    MYMALLOC_CHECK(s.mapped_bytes == region_bytes);
+    MYMALLOC_CHECK(s.block_count == 2 && s.live_blocks == 1 && s.free_blocks == 1);
+    MYMALLOC_CHECK(s.live_bytes == total);
+    MYMALLOC_CHECK(s.requested_bytes == request);
+    MYMALLOC_CHECK(s.payload_bytes == align_up(request));
+    MYMALLOC_CHECK(s.internal_slack_bytes == 0);
     MYMALLOC_CHECK(s.external_frag_permille == 0);
 
     my_free(big); // policy: free never shrinks; the region stays mapped
@@ -349,11 +374,15 @@ void test_long_cycles_bounded() {
     }
 
     // Endgame: one oversized request scavenges every free region away.
-    void* final = my_malloc(1U * 1024U * 1024U);
+    const std::size_t request = 1U * 1024U * 1024U;
+    void* final = my_malloc(request);
     MYMALLOC_CHECK(final != nullptr);
+    const std::size_t total = align_up(request) + offset();
+    const std::size_t region_bytes = align_to_page(total);
     my_heap_stats s = collect();
-    MYMALLOC_CHECK(s.region_count == 1 && s.free_blocks == 0);
-    MYMALLOC_CHECK(s.live_bytes == s.mapped_bytes);
+    MYMALLOC_CHECK(s.region_count == 1);
+    MYMALLOC_CHECK(s.mapped_bytes == region_bytes && s.live_bytes == total);
+    MYMALLOC_CHECK(s.free_bytes == region_bytes - total);
     my_free(final);
     MYMALLOC_CHECK(collect().region_count == 1); // free keeps it mapped
 }
