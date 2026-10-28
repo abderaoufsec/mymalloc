@@ -38,7 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation consolidated**: removed the per-phase design notes and the
   completed TODO roadmap. `docs/architecture.md` (renamed from
   `mymalloc_documentation.md`) and `docs/api.md` are now the canonical docs,
-  and the README links only to them and the changelog.
+  and the README is a concise quick-start guide linking to them and the
+  changelog.
 - **CI portability fixes**: moved the internal allocator mutex out of the
   `extern "C"` block to fix Clang's `-Wreturn-type-c-linkage`, normalized
   formatting with the CI-pinned clang-format, and fixed the clang-tidy findings
