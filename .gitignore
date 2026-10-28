@@ -17,3 +17,7 @@ CMakeUserPresets.json
 # OS noise
 Thumbs.db
 .DS_Store
+
+# Python tooling
+__pycache__/
+*.pyc
