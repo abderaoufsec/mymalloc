@@ -4,7 +4,7 @@
 //   POSIX   : mmap() / munmap()
 //   Windows : VirtualAlloc() / VirtualFree()
 //
-// All sizes are rounded up to whole pages (see docs/phase2_raw_memory.md for
+// All sizes are rounded up to whole pages (see docs/architecture.md for
 // the strategy decision). Returned blocks are page-aligned, zero-initialized
 // and fully writable. Allocation policy (free lists, splitting, ...) must be
 // built *on top of* this layer, never inside it.

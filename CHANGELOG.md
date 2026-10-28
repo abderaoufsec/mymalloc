@@ -35,6 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and generated `config.hpp`, plus an exported `mymalloc::mymalloc` target and
   `find_package(mymalloc CONFIG)` package files. The project version is 0.1.1,
   matching the changelog, and the target advertises C++20 and Threads.
+- **Documentation consolidated**: removed the per-phase design notes and the
+  completed TODO roadmap. `docs/architecture.md` (renamed from
+  `mymalloc_documentation.md`) and `docs/api.md` are now the canonical docs,
+  and the README links only to them and the changelog.
+- **CI portability fixes**: moved the internal allocator mutex out of the
+  `extern "C"` block to fix Clang's `-Wreturn-type-c-linkage`, normalized
+  formatting with the CI-pinned clang-format, and fixed the clang-tidy findings
+  (explicit multilevel pointer conversions, vector reserve, cast placement).
 
 ## [0.1.1] - 2026-10-15
 
@@ -47,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`clang-tidy` CI job**: The README documented clang-tidy but CI never ran it. A new job analyzes every TU in the compile database (library, tests and examples) with the repo's `.clang-tidy` via `scripts/run_clang_tidy.py`. The tree is clang-tidy clean; findings are fixed in code, never suppressed.
+- **`clang-tidy` CI job**: The README documented clang-tidy but CI never ran it. A new job analyzes every TU in the compile database (library, tests and examples) with the repo's `.clang-tidy` via `scripts/run_clang_tidy.py`. The tree is clang-tidy clean; genuine findings are fixed in code and the few checks that are intentionally not applicable are excluded in `.clang-tidy` with a documented rationale.
 - **CI hardening**: least-privilege `permissions: contents: read`, a `concurrency` group that cancels superseded runs, and `LastTest.log` uploaded as an artifact on test failure.
 - **`LICENSE`** (MIT) and this changelog.
 
@@ -57,4 +65,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2026-10-11
 
-First tagged release: Phases 0-17 complete (raw memory through benchmarking and final documentation).
+First tagged release: complete allocator (raw memory through benchmarking and documentation).

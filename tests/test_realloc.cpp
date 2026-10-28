@@ -1,5 +1,5 @@
 // Phase 11 test: verify my_realloc (<mymalloc/mymalloc.h>) against the
-// contract documented in docs/phase11_realloc.md:
+// contract documented in docs/architecture.md:
 //   * realloc(NULL, n) behaves like malloc(n); realloc(p, 0) frees and
 //     returns NULL,
 //   * shrink / grow-within-existing-slack resizes IN PLACE (same pointer,
@@ -327,8 +327,8 @@ void test_move_when_necessary() {
     MYMALLOC_CHECK(check_pattern(resized, 480U) == true);
     MYMALLOC_CHECK(my_free_list_count() == 2); // A+B coalesced survivor + new region remainder
     my_block_header* survivor = my_free_list_best_fit(1024U); // the 1024-byte survivor
-    MYMALLOC_CHECK(survivor == pair_a);      // survivor keeps the lowest address
-    MYMALLOC_CHECK(survivor->size == 1024U); // 512 + 512 fused on free
+    MYMALLOC_CHECK(survivor == pair_a);                       // survivor keeps the lowest address
+    MYMALLOC_CHECK(survivor->size == 1024U);                  // 512 + 512 fused on free
     MYMALLOC_CHECK(my_free_list_valid() == 1);
 
     my_free(resized);

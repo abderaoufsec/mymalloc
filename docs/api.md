@@ -15,17 +15,17 @@ building blocks; use them only while holding the lock or single-threaded.
 
 **Headers** (all under `include/mymalloc/`):
 
-| Header         | Since   | Purpose                                        |
+| Header         | Area    | Purpose                                        |
 |----------------|---------|------------------------------------------------|
-| `mymalloc.h`   | Phase 0 | Core `malloc`/`free`/`calloc`/`realloc` + version |
-| `raw_memory.h` | Phase 2 | Raw OS page acquisition/release                |
-| `alignment.h`  | Phase 3 | Overflow-safe alignment helpers                |
-| `block.h`      | Phase 4 | Block header, conversions, validation          |
-| `free_list.h`  | Phase 6 | Intrusive free list                            |
-| `strategy.h`   | Phase 9 | First-fit / best-fit selector                  |
-| `regions.h`    | Phase 12| Managed region registry                        |
-| `stats.h`      | Phase 13| Heap statistics / fragmentation                |
-| `debug.h`      | Phase 14| Diagnostics, ownership, canaries               |
+| `mymalloc.h`   | Core    | Core `malloc`/`free`/`calloc`/`realloc` + version |
+| `raw_memory.h` | OS      | Raw OS page acquisition/release                |
+| `alignment.h`  | Base    | Overflow-safe alignment helpers                |
+| `block.h`      | Meta    | Block header, conversions, validation          |
+| `free_list.h`  | Reuse   | Intrusive free list                            |
+| `strategy.h`   | Policy  | First-fit / best-fit selector                  |
+| `regions.h`    | Heap    | Managed region registry                        |
+| `stats.h`      | Stats   | Heap statistics / fragmentation                |
+| `debug.h`      | Debug   | Diagnostics, ownership, canaries               |
 
 ---
 
@@ -57,7 +57,7 @@ unsigned int  mymalloc_version_number(void); // MAJOR*10000 + MINOR*100 + PATCH
 
 ---
 
-## `<mymalloc/raw_memory.h>` — raw OS memory (Phase 2)
+## `<mymalloc/raw_memory.h>` — raw OS memory
 
 ```c
 size_t my_raw_page_size(void);
@@ -75,7 +75,7 @@ void   my_raw_release(void* ptr, std::size_t bytes);
 
 ---
 
-## `<mymalloc/alignment.h>` — alignment helpers (Phase 3)
+## `<mymalloc/alignment.h>` — alignment helpers
 
 ```c
 int    my_is_power_of_two(std::size_t value);
@@ -94,7 +94,7 @@ int    my_align_up_address(std::uintptr_t address, std::size_t alignment, std::u
 
 ---
 
-## `<mymalloc/block.h>` — block metadata (Phase 4)
+## `<mymalloc/block.h>` — block metadata
 
 Every block begins with a header immediately followed by its payload:
 
@@ -109,7 +109,7 @@ typedef struct my_block_header {
     my_block_header* prev;  // physical neighbour at a lower address, or NULL
     my_block_header* next;  // physical neighbour at a higher address, or NULL
     int free;               // 1 = free, 0 = allocated
-    unsigned int requested; // live request (Phase 13); 0 for free blocks
+    unsigned int requested; // live request; 0 for free blocks
 } my_block_header;
 
 #define MY_BLOCK_REQUESTED_HUGE 0x80000000u   // "exact request unknown" sentinel
@@ -156,7 +156,7 @@ int             my_block_valid(const my_block_header* block);
 
 ---
 
-## `<mymalloc/free_list.h>` — free list (Phase 6)
+## `<mymalloc/free_list.h>` — free list
 
 An intrusive, address-ascending doubly linked list whose links live in the
 payload of each free block (allocated blocks pay zero extra bytes).
@@ -197,7 +197,7 @@ void            my_free_list_clear(void);
 
 ---
 
-## `<mymalloc/strategy.h>` — placement strategy (Phase 9)
+## `<mymalloc/strategy.h>` — placement strategy
 
 ```c
 enum my_strategy {
@@ -213,11 +213,11 @@ enum my_strategy my_get_strategy(void);
   silently disable reuse.
 - **`my_get_strategy`** — the current strategy. The default is first fit; best
   fit's whole-list scan is not worth it for this region-per-block model (see
-  `docs/phase16_performance.md`).
+  `docs/architecture.md`).
 
 ---
 
-## `<mymalloc/regions.h>` — region registry (Phase 12)
+## `<mymalloc/regions.h>` — region registry
 
 ```c
 typedef struct my_region { void* base; size_t bytes; } my_region;
@@ -247,7 +247,7 @@ size_t my_regions_release_free(void);
 
 ---
 
-## `<mymalloc/stats.h>` — heap statistics (Phase 13)
+## `<mymalloc/stats.h>` — heap statistics
 
 ```c
 typedef struct my_heap_stats {
@@ -269,11 +269,11 @@ that cannot drift. Returns 1 and fills `*out` on a consistent heap; returns **0
 and writes nothing** when `out` is NULL or any inconsistency is found (invalid
 block, chain escaping/undershooting its region, free-count disagreement), so
 the return value doubles as a heap-health check. O(blocks) — a diagnostic, not a
-hot path. See `docs/phase13_fragmentation.md` for the metric definitions.
+hot path. See `docs/architecture.md` for the metric definitions.
 
 ---
 
-## `<mymalloc/debug.h>` — diagnostics (Phase 14)
+## `<mymalloc/debug.h>` — diagnostics
 
 ```c
 int  my_check_heap(char* detail, size_t detail_size);
@@ -310,7 +310,7 @@ void my_set_diag_hook(my_diag_hook hook);
   "now".
 - **`my_enable_checks(enable)`** — turn opt-in canaries + event counters on/off
   (off by default). With checks off, `my_malloc` reserves nothing and stamps
-  nothing, so release builds keep the exact Phase 5–13 layout and speed.
+  nothing, so release builds keep the default block layout and speed.
   Returns the previous state.
 - **`my_canary_ok(ptr)`** — 1 when `ptr` is an owned, allocated block whose
   trailing canary is intact; 0 for NULL/foreign/freed, a broken canary (heap
@@ -320,4 +320,4 @@ void my_set_diag_hook(my_diag_hook hook);
   `"heap corruption"`, `"bad canary"`); `NULL` clears it.
 
 Diagnostics never allocate on a failing path and never abort — they report and
-let the caller decide. See `docs/phase14_debugging.md`.
+let the caller decide. See `docs/architecture.md`.

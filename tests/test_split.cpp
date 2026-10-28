@@ -1,5 +1,5 @@
 // Phase 7 test: verify block splitting (my_block_split) against the contract
-// documented in docs/phase7_splitting.md:
+// documented in docs/architecture.md:
 //   * a valid block splits into FRONT (same address) + REMAINDER (tail),
 //   * sizes add up and stay alignment multiples,
 //   * the physical neighbor chain is repaired on both sides,
@@ -306,10 +306,10 @@ void test_remainder_too_small() {
         return;
     }
     my_block_header* const blk = my_user_to_block(p);
-    MYMALLOC_CHECK(blk->size == block_bytes);   // reused whole (payload slack kept)
-    MYMALLOC_CHECK(blk->next == nullptr);        // no remainder block created
+    MYMALLOC_CHECK(blk->size == block_bytes); // reused whole (payload slack kept)
+    MYMALLOC_CHECK(blk->next == nullptr);     // no remainder block created
     MYMALLOC_CHECK(blk->free == 0);
-    MYMALLOC_CHECK(my_free_list_count() == 0);   // the only free block is now live
+    MYMALLOC_CHECK(my_free_list_count() == 0); // the only free block is now live
 
     my_free(p);
     my_free_list_clear();

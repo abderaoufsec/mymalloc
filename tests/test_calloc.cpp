@@ -1,5 +1,5 @@
 // Phase 10 test: verify my_calloc (<mymalloc/mymalloc.h>) against the
-// contract documented in docs/phase10_calloc.md: zero-initialized memory,
+// contract documented in docs/architecture.md: zero-initialized memory,
 // multiplication-overflow rejection, zero-count/zero-size failure, and —
 // crucially — that a REUSED block is still zeroed (not left stale).
 #include <cstddef>

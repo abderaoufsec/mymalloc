@@ -4,7 +4,7 @@
 // oversized free block now returns just the requested front and keeps a
 // worthwhile remainder listed for reuse, instead of absorbing all the slack.
 //
-// See docs/phase7_splitting.md for the split policy and its boundary rules.
+// See docs/architecture.md for the split policy and its boundary rules.
 #include <cstddef>
 #include <cstdio>
 

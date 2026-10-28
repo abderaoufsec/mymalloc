@@ -1,5 +1,5 @@
 // Phase 16 test: performance invariants for the benchmark
-// (examples/benchmark.cpp) — see docs/phase16_performance.md.
+// (examples/benchmark.cpp) — see docs/architecture.md.
 //
 // Benchmarks must not assert absolute wall-clock times (they are machine- and
 // load-dependent and would flake). Instead this suite locks down the PROPERTIES
@@ -139,7 +139,7 @@ void test_paths_drain_clean() {
     void* p = my_malloc(32);
     MYMALLOC_CHECK(p != nullptr);
     for (int i = 0; i < 20000; ++i) {
-        p = my_realloc(p, static_cast<std::size_t>(32 + (i & 0x3F)));
+        p = my_realloc(p, 32U + static_cast<std::size_t>(i & 0x3F));
         MYMALLOC_CHECK(p != nullptr);
     }
     my_free(p);

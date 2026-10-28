@@ -1,25 +1,17 @@
-// The mymalloc allocator (Phases 5-13): my_malloc / my_free / my_calloc /
-// my_realloc.
+// The mymalloc allocator: my_malloc / my_free / my_calloc / my_realloc.
 //
 // Model: every allocation gets its own raw region (page-rounded) holding one
-// block. Freed blocks are published to the free list and reused by the active
-// placement strategy (Phase 9; default first fit since Phase 6, optional best
-// fit); an oversized reused block is SPLIT so the request takes the front and
-// a worthwhile remainder stays listed (Phase 7); on free, a block COALESCES
-// with adjacent free neighbors so split/free cycles do not fragment a region
-// (Phase 8); my_realloc resizes in place when the block fits or can absorb its
-// free upper neighbor, and moves with a bounded copy otherwise (Phase 11);
-// every acquired raw region is TRACKED, and fully-free regions are returned
-// to the OS just before fresh memory is acquired (Phase 12,
-// scavenge-on-acquire). Every allocation path records the exact request in
-// the block header (Phase 13) so my_heap_stats_collect can measure internal
-// fragmentation. See docs/phase12_heap_management.md for the region
-// ownership model and docs/phase13_fragmentation.md for the statistics,
-// and docs/phase11_realloc.md for the resize
-// design, docs/phase9_allocation_strategies.md for the strategy choice,
-// docs/phase8_coalescing.md for the merge policy, docs/phase7_splitting.md
-// for the split policy, docs/phase6_free_list.md for the reuse design and
-// docs/phase5_allocator.md for the base model and its limits.
+// block. Freed blocks are published to the address-ordered free list and
+// reused by the active placement strategy (first fit by default, best fit
+// optional); an oversized reused block is split so the request takes the front
+// and a worthwhile remainder stays listed; on free, a block coalesces with
+// adjacent free neighbors so split/free cycles do not fragment a region;
+// my_realloc resizes in place when the block fits or can absorb its free upper
+// neighbor, and moves with a bounded copy otherwise. Every acquired raw region
+// is tracked, and fully-free regions are returned to the OS just before fresh
+// memory is acquired (scavenge-on-acquire). Every allocation path records the
+// exact request in the block header so my_heap_stats_collect can measure
+// internal fragmentation. See docs/architecture.md for the design.
 #include <mymalloc/alignment.h>
 #include <mymalloc/block.h>
 #include <mymalloc/free_list.h>
@@ -70,7 +62,7 @@ my_block_header* select_fit(std::size_t total) {
 // to keep the no-adjacent-free-blocks invariant. The freed block is not
 // listed yet, so only its neighbors need un-listing; insert can only fail on
 // a header too broken to validate, and staying free-but-unlisted is
-// leak-safe (see docs/phase8_coalescing.md).
+// leak-safe (see docs/architecture.md).
 void coalesce_and_publish(my_block_header* block) {
     block->free = 1;
     my_block_header* merged = block;
@@ -170,7 +162,7 @@ void* malloc_locked(size_t size) {
     //    lives on the free list; regions are only returned to the OS here —
     //    when they could not satisfy the request after all — so hot
     //    alloc/free paths never thrash mmap/munmap. Blocks with any live
-    //    allocation keep their region (see docs/phase12_heap_management.md).
+    //    allocation keep their region (see docs/architecture.md).
     static_cast<void>(my_regions_release_free_locked());
 
     // 4. Acquire memory when needed (fails -> NULL).

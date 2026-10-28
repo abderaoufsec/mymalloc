@@ -1,5 +1,5 @@
 // Phase 4 test: verify the block metadata layer (<mymalloc/block.h>)
-// against the invariants documented in docs/phase4_block_metadata.md:
+// against the invariants documented in docs/architecture.md:
 // header/user-pointer conversions, initialization rules, payload
 // non-interference, neighbor tracking, and corruption detection.
 #include <cstddef>

@@ -3,7 +3,7 @@
 // A placement strategy decides WHICH free block my_malloc hands out for a
 // request. This phase keeps the pure structure (the free list) unchanged and
 // adds only the CHOICE of fit, plus a selectable global so the two can be
-// compared and the default documented (see docs/phase9_allocation_strategies.md).
+// compared and the default documented (see docs/architecture.md).
 //
 // Default: MY_STRATEGY_FIRST_FIT (unchanged since Phase 6). Best fit is
 // optional and set explicitly; it is not the default because its whole-list

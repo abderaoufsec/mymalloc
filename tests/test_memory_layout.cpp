@@ -1,5 +1,5 @@
 // Phase 1 test: assert the process memory-layout invariants documented in
-// docs/phase1_memory_model.md. These are the properties later allocator
+// docs/architecture.md. These are the properties later allocator
 // phases (raw regions, alignment, validation) may rely on.
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN

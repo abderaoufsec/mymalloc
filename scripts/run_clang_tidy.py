@@ -24,14 +24,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 # A clang-tidy finding names one of the enabled checks in a trailing
-# "[check-name]" token, e.g. "[bugprone-narrowing-conversions]". clang-tidy
-# wraps long messages across lines, so the tag is not always on the same line
-# as "warning:" — match the tag itself. Compiler diagnostics surfaced while
-# parsing (missing/mismatched system headers) are tagged "[clang-diagnostic...]"
-# and are NOT findings: on a MSYS2/MinGW host the bundled clang-tidy can
-# mis-parse the toolchain's own headers, so that noise must not fail the run.
-# On Linux CI the headers parse cleanly and every real finding is still caught.
-FINDING_RE = re.compile(r"\[(?!clang-diagnostic)[a-zA-Z][\w\-]*\]")
+# "[check-name]" token, e.g. "[bugprone-narrowing-conversions]". Match only
+# diagnostic lines ("warning:"/"error:") so the code-context lines clang-tidy
+# prints around a diagnostic (which contain array subscripts such as
+# "fresh[index]") are never mistaken for findings. Compiler diagnostics
+# surfaced while parsing (missing/mismatched system headers) are tagged
+# "[clang-diagnostic...]" and are NOT findings: on a MSYS2/MinGW host the
+# bundled clang-tidy can mis-parse the toolchain's own headers, so that noise
+# must not fail the run. On Linux CI the headers parse cleanly and every real
+# finding is still caught.
+FINDING_RE = re.compile(r"(?:warning|error):.*\[(?!clang-diagnostic)[a-zA-Z][\w\-]*\]")
 
 
 def main(argv):

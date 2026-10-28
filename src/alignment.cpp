@@ -3,7 +3,7 @@
 // Rounding uses the classic power-of-two bit trick:
 //   aligned = (value + (alignment - 1)) & ~(alignment - 1)
 // which is branch-free but wraps around on overflow — hence the explicit
-// range checks before adding the mask. See docs/phase3_alignment.md.
+// range checks before adding the mask. See docs/architecture.md.
 #include <mymalloc/alignment.h>
 
 #include <cstddef>

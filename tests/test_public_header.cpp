@@ -1,5 +1,5 @@
 // Phase 0 smoke test: <mymalloc/mymalloc.h> must expose exactly the target
-// API from docs/mymalloc_documentation.md, must be idempotent (include guard)
+// API from docs/architecture.md, must be idempotent (include guard)
 // and C-linkage compatible.
 //
 // The allocator functions are only *declared* at this stage (implemented in

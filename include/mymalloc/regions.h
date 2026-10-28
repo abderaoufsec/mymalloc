@@ -26,7 +26,7 @@
 //      list can never dangle into released memory.
 //
 // The policy decision (WHEN the allocator gives regions back) lives in
-// src/allocator.cpp — scavenge-on-acquire, see docs/phase12_heap_management.md.
+// src/allocator.cpp — scavenge-on-acquire, see docs/architecture.md.
 //
 // Public entry points serialize on the allocator lock and may be called
 // concurrently with allocation.

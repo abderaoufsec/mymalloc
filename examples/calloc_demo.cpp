@@ -10,7 +10,7 @@
 // calloc cannot trust the mapping — it zeroes explicitly. This demo makes the
 // stale-reuse case visible.
 //
-// See docs/phase10_calloc.md for the design.
+// See docs/architecture.md for the design.
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

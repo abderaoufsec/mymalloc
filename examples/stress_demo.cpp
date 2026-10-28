@@ -3,7 +3,7 @@
 // Runs a short, deterministic randomized workload (alloc/calloc/realloc/free
 // over mixed sizes) and narrates what the diagnostics from Phases 13-14 report
 // along the way: live/mapped bytes stay accounted, the heap stays consistent,
-// and the run drains to empty (no leaks). See docs/phase15_stress_testing.md.
+// and the run drains to empty (no leaks). See docs/architecture.md.
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

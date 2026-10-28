@@ -1,13 +1,11 @@
 # mymalloc — User-Space Memory Allocator
 
-An educational C++20 memory allocator, built phase by phase: raw OS memory,
-alignment, block metadata, free lists, splitting/coalescing,
-`malloc`/`free`/`calloc`/`realloc`, fragmentation analysis, corruption
-detection, stress testing, and benchmarking.
+An educational C++20 memory allocator: raw OS memory, alignment, block
+metadata, free lists, splitting/coalescing, `malloc`/`free`/`calloc`/`realloc`,
+fragmentation analysis, corruption detection, stress testing, and benchmarking.
 
-See [docs/mymalloc_documentation.md](docs/mymalloc_documentation.md) for the
-architecture and [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md) for the full
-phase roadmap.
+See [docs/architecture.md](docs/architecture.md) for the design and
+[docs/api.md](docs/api.md) for the public API reference.
 
 ## Project layout
 
@@ -21,7 +19,7 @@ mymalloc/
 ├── tests/                  # CTest suite (dependency-free harness)
 ├── examples/               # sample programs
 ├── scripts/                # developer tooling (format, clang-tidy driver)
-├── docs/                   # documentation and roadmap
+├── docs/                   # architecture and API reference
 └── .github/workflows/      # CI (build, test, sanitizers, format, static analysis)
 ```
 
@@ -35,9 +33,7 @@ void* my_realloc(void* ptr, std::size_t new_size);
 ```
 
 Declared in [`include/mymalloc/mymalloc.h`](include/mymalloc/mymalloc.h)
-(C linkage, usable from C and C++). All four are implemented
-(`my_malloc`/`my_free` in Phases 5-6, `my_calloc` in Phase 10,
-`my_realloc` in Phase 11).
+(C linkage, usable from C and C++). All four are implemented.
 
 ## Requirements
 
@@ -127,38 +123,38 @@ dependencies). Current tests:
 - `test_version` — generated version metadata matches the exported helpers
 - `test_public_header` — public header exposes exactly the target API
   (compile-time signature checks, include-guard and `size_t` compatibility)
-- `test_memory_layout` — process address-space invariants (Phase 1)
+- `test_memory_layout` — process address-space invariants
 - `test_raw_memory` — page-rounded acquire/release, failures, repeated
-  cycles (Phase 2)
+  cycles
 - `test_alignment` — rounding boundaries, overflow, raw-region integration
-  (Phase 3)
+
 - `test_block` — header invariants, conversions, corruption detection
-  (Phase 4)
+
 - `test_allocator` — `my_malloc`/`my_free` contract: alignment, isolation,
-  failures (Phase 5)
-- `test_free_list` — free-list invariants, first-fit, reuse (Phase 6)
-- `test_split` — splitting, remainder insertion, reuse boundary cases (Phase 7)
+  failures
+- `test_free_list` — free-list invariants, first-fit, reuse
+- `test_split` — splitting, remainder insertion, reuse boundary cases
 - `test_coalescing` — `my_block_merge`, neighbor fusion, split/free round-trip,
-  fragmentation reduction (Phase 8)
+  fragmentation reduction
 - `test_strategy` — `my_free_list_best_fit`, strategy selector, end-to-end
-  first-fit vs best-fit placement (Phase 9)
+  first-fit vs best-fit placement
 - `test_calloc` — zero-init, multiplication-overflow rejection, reused-block
-  zeroing (Phase 10)
+  zeroing
 - `test_realloc` — in-place resize (fits/absorb), moves, failure leaves the
-  original intact, data preservation (Phase 11)
+  original intact, data preservation
 - `test_regions` — region tracking, multi-region scavenge-on-acquire, guarded
-  release (invalid-unmap refusal), long-cycle registry bounds (Phase 12)
+  release (invalid-unmap refusal), long-cycle registry bounds
 - `test_fragmentation` — heap statistics, internal/external fragmentation,
-  derive-from-ground-truth walk, collect contract (Phase 13)
+  derive-from-ground-truth walk, collect contract
 - `test_debug` — pointer validation, heap-consistency checker, usage/diagnostic
-  counters, opt-in canaries, invalid/double-free detection (Phase 14)
+  counters, opt-in canaries, invalid/double-free detection
 - `test_stress` — deterministic randomized alloc/free/realloc over mixed sizes,
   data-integrity verification, three-way accounting cross-check, leak audit
-  (Phase 15)
-- `test_threads` - concurrent malloc/free/realloc, introspection racing
-  mutation, strategy toggling (Phase 19)
+
+- `test_threads` — concurrent malloc/free/realloc, introspection racing
+  mutation, strategy toggling
 - `test_benchmark` — benchmark invariants: deterministic workload, clean drains,
-  reuse performs no OS acquisition (Phase 16)
+  reuse performs no OS acquisition
 
 Run everything with `ctest --preset debug`, or a single test:
 
@@ -168,27 +164,27 @@ ctest --preset debug -R test_version
 
 ## Examples
 
-Each phase ships a runnable demo under `examples/` (build with
+The repository ships runnable demos under `examples/` (build with
 `MYMALLOC_BUILD_EXAMPLES=ON`, the default). Run any from its build directory,
 e.g. `out/build/release/examples/fragmentation_demo`:
 
 - `hello_mymalloc` — version smoke test
-- `memory_layout` — process address-space layout (Phase 1)
-- `raw_memory_demo` — page-granular acquire/release (Phase 2)
-- `alignment_demo` — overflow-safe rounding (Phase 3)
-- `block_demo` — headers, conversions, corruption detection (Phase 4)
-- `allocator_demo` — first `my_malloc`/`my_free` (Phase 5)
-- `free_list_demo` — free-list reuse (Phase 6)
-- `split_demo` — splitting (Phase 7)
-- `coalescing_demo` — neighbour fusion (Phase 8)
-- `strategy_demo` — first-fit vs best-fit (Phase 9)
-- `calloc_demo` — zero-init + overflow checks (Phase 10)
-- `realloc_demo` — in-place / move resizing (Phase 11)
-- `regions_demo` — region registry + scavenge (Phase 12)
-- `fragmentation_demo` — live fragmentation metrics (Phase 13)
-- `debug_demo` — diagnostics, ownership, canaries (Phase 14)
-- `stress_demo` — narrated randomized workload (Phase 15)
-- `benchmark` — hot-path ns/op + strategy comparison (Phase 16)
+- `memory_layout` — process address-space layout
+- `raw_memory_demo` — page-granular acquire/release
+- `alignment_demo` — overflow-safe rounding
+- `block_demo` — headers, conversions, corruption detection
+- `allocator_demo` — first `my_malloc`/`my_free`
+- `free_list_demo` — free-list reuse
+- `split_demo` — splitting
+- `coalescing_demo` — neighbour fusion
+- `strategy_demo` — first-fit vs best-fit
+- `calloc_demo` — zero-init + overflow checks
+- `realloc_demo` — in-place / move resizing
+- `regions_demo` — region registry + scavenge
+- `fragmentation_demo` — live fragmentation metrics
+- `debug_demo` — diagnostics, ownership, canaries
+- `stress_demo` — narrated randomized workload
+- `benchmark` — hot-path ns/op + strategy comparison
 
 ## Formatting and static analysis
 
@@ -221,131 +217,20 @@ For static analysis:
 6. **static-analysis** — cppcheck
 7. **clang-tidy** — bugprone/analyzer/performance/portability checks
 
-## Roadmap
+## Documentation
 
-Progress is tracked in [docs/mymalloc_TODO.md](docs/mymalloc_TODO.md):
-
-- [x] **Phase 0 — Foundation**: C++20 + CMake project, layout, strict warnings,
-  Debug/Release, ASan/UBSan, clang-format/static analysis, GitHub CI,
-  initial tests, build documentation
-- [x] **Phase 1 — Memory Model**: address-space study and invariants in
-  [docs/phase1_memory_model.md](docs/phase1_memory_model.md), layout experiment
-  (`examples/memory_layout.cpp`, incl. `/proc/self/maps` on Linux), invariants
-  test (`test_memory_layout`)
-- [x] **Phase 2 — Raw Memory**: mmap/VirtualAlloc strategy chosen and documented
-  in [docs/phase2_raw_memory.md](docs/phase2_raw_memory.md); raw region
-  layer (`<mymalloc/raw_memory.h>`, page-rounded/aligned, zero-filled,
-  overflow- and failure-safe), demo (`examples/raw_memory_demo.cpp`), tests
-  (`test_raw_memory`)
-- [x] **Phase 3 — Alignment**: requirements and overflow-safe rounding helpers
-  in [docs/phase3_alignment.md](docs/phase3_alignment.md)
-  (`<mymalloc/alignment.h>`), demo (`examples/alignment_demo.cpp`), tests
-  (`test_alignment`, incl. boundary sweep + raw-region integration)
-- [x] **Phase 4 — Block Metadata**: header design with size/state/neighbor
-  semantics and documented boundary-tag tradeoff
-  ([docs/phase4_block_metadata.md](docs/phase4_block_metadata.md)),
-  `<mymalloc/block.h>` conversions + ordered corruption-detecting validator,
-  demo (`examples/block_demo.cpp`), tests (`test_block`)
-- [x] **Phase 5 — First Allocator**: working `my_malloc`/`my_free`
-  (region-per-block model, overflow-safe sizing, aligned results,
-  documented no-reuse limits deferred to Phases 6-8) in
-  [docs/phase5_allocator.md](docs/phase5_allocator.md), demo
-  (`examples/allocator_demo.cpp`), tests (`test_allocator`)
-- [x] **Phase 6 — Free List**: intrusive address-ordered free list threaded
-  through free-block payloads with first-fit reuse in `my_malloc`,
-  double-free guarding in `my_free` and a machine-checked consistency audit
-  ([docs/phase6_free_list.md](docs/phase6_free_list.md)), demo
-  (`examples/free_list_demo.cpp`), tests (`test_free_list`)
-- [x] **Phase 7 — Splitting**: `my_block_split` carves a first-fit block into
-  an allocated front (returned) and a worthwhile remainder that stays listed
-  for reuse, with a documented minimum-remainder rule and no coalescing yet
-  ([docs/phase7_splitting.md](docs/phase7_splitting.md)), demo
-  (`examples/split_demo.cpp`), tests (`test_split`)
-- [x] **Phase 8 — Coalescing**: `my_block_merge` fuses a freed block with its
-  physically adjacent FREE neighbors in `my_free`, publishing a single
-  lowest-address survivor so Phase 7's split/free cycles round-trip back to
-  one whole block and a region never fragments
-  ([docs/phase8_coalescing.md](docs/phase8_coalescing.md)), demo
-  (`examples/coalescing_demo.cpp`), tests (`test_coalescing`)
-- [x] **Phase 9 — Allocation Strategies**: `my_free_list_best_fit` plus a
-  process-wide strategy selector (`my_set_strategy`/`my_get_strategy`,
-  `<mymalloc/strategy.h>`); first fit stays the default, best fit is opt-in,
-  and `my_malloc` reuses through the active strategy
-  ([docs/phase9_allocation_strategies.md](docs/phase9_allocation_strategies.md)),
-  demo (`examples/strategy_demo.cpp`), tests (`test_strategy`)
-- [x] **Phase 10 — `calloc`**: `my_calloc(count, size)` with pre-multiply
-  overflow rejection (`count > SIZE_MAX / size`) and explicit zeroing so
-  reused blocks (Phases 6-7) are not left stale
-  ([docs/phase10_calloc.md](docs/phase10_calloc.md)), demo
-  (`examples/calloc_demo.cpp`), tests (`test_calloc`)
-- [x] **Phase 11 — `realloc`**: `my_realloc` resizes in place when the request
-  fits the block or can absorb its free upper neighbor (coalescing the split
-  tail), otherwise moves with a bounded overlap copy; allocation failure
-  returns `NULL` with the original block untouched
-  ([docs/phase11_realloc.md](docs/phase11_realloc.md)), demo
-  (`examples/realloc_demo.cpp`), tests (`test_realloc`)
-- [x] **Phase 12 — Heap Management**: every raw region `my_malloc` acquires is
-  tracked in a growable registry (`<mymalloc/regions.h>`); fully-free regions
-  are returned to the OS scavenge-on-acquire (`my_free` never shrinks the
-  heap), and four guardrails (exact membership, exact extent, structural
-  full-freeness, unlist-before-unmap) make invalid unmapping impossible
-  ([docs/phase12_heap_management.md](docs/phase12_heap_management.md)), demo
-  (`examples/regions_demo.cpp`), tests (`test_regions`)
-- [x] **Phase 13 — Fragmentation**: `my_heap_stats_collect` (`<mymalloc/stats.h>`)
-  walks the tracked regions once and derives requested/allocated/free bytes,
-  block counts, and internal (`payload − requested`) vs external
-  (`free − largest_free`) fragmentation as bytes and permille ratios, with a
-  collect contract that refuses an inconsistent heap; the block header records
-  each live request so no allocation behaviour changes
-  ([docs/phase13_fragmentation.md](docs/phase13_fragmentation.md)), demo
-  (`examples/fragmentation_demo.cpp`), tests (`test_fragmentation`)
-- [x] **Phase 14 — Debugging**: `<mymalloc/debug.h>` adds three independent
-  surfaces — `my_owns`/`my_check_heap` for always-available ownership and heap
-  consistency, `my_diagnostics` for always-on usage peaks/mirror plus opt-in
-  event counters (invalid/double free, corruption, bad canary, foreign
-  pointer), and `my_enable_checks` for opt-in trailing **canaries** that catch
-  heap overflows; checks are off by default so release builds keep the exact
-  Phase 5–13 block layout and speed
-  ([docs/phase14_debugging.md](docs/phase14_debugging.md)), demo
-  (`examples/debug_demo.cpp`), tests (`test_debug`)
-- [x] **Phase 15 — Stress Testing**: a deterministic (fixed-seed splitmix64)
-  randomized suite — `test_stress` — hammers alloc/calloc/realloc/free over
-  mixed sizes and long workloads, stamping a unique per-allocation byte pattern
-  to catch any overlap or corruption and cross-checking the Phase 13 walk, the
-  Phase 14 counters, and its own tally three ways at every checkpoint, then
-  auditing for leaks (drain-to-zero + scavenge-to-one-region); canary-enabled
-  runs must record zero anomalies
-  ([docs/phase15_stress_testing.md](docs/phase15_stress_testing.md)), demo
-  (`examples/stress_demo.cpp`), tests (`test_stress`)
-- [x] **Phase 16 — Performance**: a `std::chrono`-based benchmark
-  (`examples/benchmark.cpp`) times the hot paths (reuse, fresh-acquire, free,
-  realloc) and compares first-fit vs best-fit on a byte-for-byte identical
-  deterministic workload, reporting ns/op and the fragmentation each leaves;
-  profiling shows OS acquisition dominates the cold path (~26× a reuse hit) and
-  best-fit's O(n) scan buys no fragmentation benefit here (~17× slower, same
-  frag), confirming the Phase 9 first-fit default — so, per "optimize only
-  after profiling", **no code changed** (a slab/size-class cache is recorded as
-  future work); `test_benchmark` asserts the harness's determinism and clean
-  drains without pinning any flaky wall-clock number
-  ([docs/phase16_performance.md](docs/phase16_performance.md)), demo
-  (`examples/benchmark.cpp`), tests (`test_benchmark`)
-- [x] **Phase 17 — Final Quality**: consolidated the public API into
-  [`docs/api.md`](docs/api.md) (every header, every function, contracts and
-  return values), refreshed the architecture doc with an implementation-status
-  table plus consolidated invariants and limitations, completed the README
-  (full test list, an Examples index), and verified the whole tree — clean
-  Debug and Release builds with `-Werror`, all 18 CTest suites green,
-  clang-format clean (sanitizers + cppcheck/clang-tidy run in CI; their
-  runtimes/tools are not in the local MSYS2 toolchain) — then tagged the
-  `v0.1.0` release
+- [docs/architecture.md](docs/architecture.md) — design, invariants, and
+  limitations
+- [docs/api.md](docs/api.md) — public API reference
+- [CHANGELOG.md](CHANGELOG.md) — release history
 
 ## Engineering rules
 
-1. Implement one phase at a time.
+1. Implement one component at a time.
 2. Every feature needs tests.
 3. Preserve alignment and metadata invariants.
 4. Check integer overflow.
 5. Separate OS memory acquisition from allocation policy.
 6. Use sanitizers and stress tests.
 7. Document architectural changes.
-8. Do not mark a phase complete until its tests pass.
+8. Do not mark a component complete until its tests pass.

@@ -1,5 +1,5 @@
 // Phase 14 test: debugging, pointer validation, and diagnostics
-// (<mymalloc/debug.h>) against docs/phase14_debugging.md. Exercises the three
+// (<mymalloc/debug.h>) against docs/architecture.md. Exercises the three
 // surfaces: always-available ownership + heap-consistency, the always-on usage
 // accounting (cross-checked against Phase 13's independent walk), and the
 // opt-in canaries / event counters / verbose hook.

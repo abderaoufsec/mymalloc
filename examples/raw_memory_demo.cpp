@@ -3,7 +3,7 @@
 // Acquires a few page-granular regions through the OS layer, prints their
 // addresses and page alignment, writes into every page, then releases them.
 //
-// See docs/phase2_raw_memory.md for the strategy decision (mmap/munmap on
+// See docs/architecture.md for the strategy decision (mmap/munmap on
 // POSIX, VirtualAlloc/VirtualFree on Windows).
 #include <cstddef>
 #include <cstdint>

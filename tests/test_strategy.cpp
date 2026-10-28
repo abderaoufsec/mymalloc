@@ -1,5 +1,5 @@
 // Phase 9 test: allocation strategies (first fit vs best fit) against the
-// contract in docs/phase9_allocation_strategies.md:
+// contract in docs/architecture.md:
 //   * my_free_list_best_fit returns the SMALLEST free block that fits, ties
 //     broken by lowest address (the list is address-ascending),
 //   * best fit and first fit agree when only one block fits, and diverge

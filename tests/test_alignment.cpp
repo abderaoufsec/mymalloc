@@ -1,5 +1,5 @@
 // Phase 3 test: verify the alignment helpers (<mymalloc/alignment.h>)
-// against the invariants documented in docs/phase3_alignment.md:
+// against the invariants documented in docs/architecture.md:
 // power-of-two detection, a sane default alignment, exact and rounded-up
 // results at boundaries, overflow failures that leave the out-parameter
 // untouched, a many-sizes/many-alignments sweep, and integration with the

@@ -2,7 +2,7 @@
 //
 // POSIX uses mmap()/munmap() with anonymous private mappings; Windows uses
 // VirtualAlloc()/VirtualFree(). Both work in whole pages and both return
-// zero-initialized memory. See docs/phase2_raw_memory.md.
+// zero-initialized memory. See docs/architecture.md.
 #include <mymalloc/raw_memory.h>
 
 #include <cstddef>

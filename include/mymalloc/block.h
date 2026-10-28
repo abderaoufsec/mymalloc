@@ -12,7 +12,7 @@
 //   multiple of my_default_alignment() and at least my_block_user_offset().
 // - `prev`/`next` point to the physically adjacent blocks in address order
 //   (NULL at region edges) — this gives O(1) neighbor discovery for
-//   coalescing (see docs/phase4_block_metadata.md for the tradeoff).
+//   coalescing (see docs/architecture.md for the tradeoff).
 // - `free` is exactly 0 (allocated) or 1 (free).
 // - `requested` (Phase 13) records the caller's live request so internal
 //   fragmentation (payload - request) can be measured; it reuses the padding
@@ -96,7 +96,7 @@ size_t my_block_requested(const my_block_header* block);
 //
 // Both halves inherit `block`'s free state; the caller adjusts each as needed.
 // This touches only headers and physical links — free-list membership is the
-// caller's responsibility (see docs/phase7_splitting.md).
+// caller's responsibility (see docs/architecture.md).
 int my_block_split(my_block_header* block, size_t front_size);
 
 // Merges two physically adjacent, address-ordered blocks into one: `upper`
@@ -109,7 +109,7 @@ int my_block_split(my_block_header* block, size_t front_size);
 //
 // This is a pure physical operation: it does not touch free-list membership
 // or the free flag. The coalescing caller removes both halves from the list
-// and re-inserts the survivor (see docs/phase8_coalescing.md).
+// and re-inserts the survivor (see docs/architecture.md).
 int my_block_merge(my_block_header* lower, my_block_header* upper);
 
 // Neighbor accessors (NULL-safe). Precondition: trusted/readable header.
@@ -120,7 +120,7 @@ my_block_header* my_block_next(const my_block_header* block);
 int my_block_is_free(const my_block_header* block);
 
 // Verifies every metadata invariant documented in
-// docs/phase4_block_metadata.md. Misaligned or NULL pointers are rejected
+// docs/architecture.md. Misaligned or NULL pointers are rejected
 // without dereferencing. Link pointers are trusted to point to readable
 // memory (full adversarial-pointer validation is Phase 14). Phase 13 adds
 // one more invariant: an ALLOCATED block must record a request that fits its

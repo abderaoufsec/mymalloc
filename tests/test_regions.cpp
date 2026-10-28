@@ -1,5 +1,5 @@
 // Phase 12 test: verify the region registry (<mymalloc/regions.h>) against
-// the contract documented in docs/phase12_heap_management.md: every region
+// the contract documented in docs/architecture.md: every region
 // my_malloc acquires is tracked, multiple regions coexist, fully-free regions
 // are reclaimed scavenge-on-acquire (never while any allocation is live), the
 // release guardrails refuse anything that could cause an invalid unmapping
@@ -238,8 +238,8 @@ void test_untracked_regions_untouched() {
     // pages had been unmapped.
     MYMALLOC_CHECK(my_free_list_valid() == 1); // walks foreign block: faults if unmapped
 
-    my_free(big);                  // its region is mine to reclaim later (coalesces while list intact)
-    my_free_list_clear();          // drop all blocks from the list
+    my_free(big);         // its region is mine to reclaim later (coalesces while list intact)
+    my_free_list_clear(); // drop all blocks from the list
     my_raw_release(foreign, page); // the TEST owns this region, not mymalloc
 }
 

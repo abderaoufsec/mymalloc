@@ -5,7 +5,7 @@
 // both fragmentation metrics fall out of the same pass. The walk is the
 // authority — no counters are maintained on the hot paths, so the numbers
 // cannot desynchronize from the heap even under future allocator changes.
-// See docs/phase13_fragmentation.md for the definitions and design notes.
+// See docs/architecture.md for the definitions and design notes.
 #include <mymalloc/stats.h>
 
 #include <mymalloc/alignment.h>

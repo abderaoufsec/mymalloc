@@ -1,5 +1,5 @@
 // Phase 2 test: verify the raw OS memory layer (<mymalloc/raw_memory.h>)
-// against the invariants documented in docs/phase2_raw_memory.md:
+// against the invariants documented in docs/architecture.md:
 // page size sanity, page alignment, writability of the whole region,
 // zero-initialization, graceful failure (zero / overflow / OS refusal),
 // non-overlap of live regions, and repeated acquire/release cycles.
