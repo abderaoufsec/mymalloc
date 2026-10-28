@@ -1,6 +1,6 @@
 // mymalloc — heap statistics and fragmentation measurement (Phase 13).
 //
-// Definitions (design and rationale in docs/phase13_fragmentation.md):
+// Definitions (design and rationale in docs/architecture.md):
 // - INTERNAL fragmentation: bytes inside ALLOCATED blocks the caller cannot
 //   use — the per-block header, alignment padding (payload - request), and
 //   slack too small to split off (the Phase 7 policy). Measured against the

@@ -3,9 +3,8 @@
 // Implements the {base, bytes} registry and the guarded release described in
 // include/mymalloc/regions.h: growable table (my_raw_acquire, never
 // my_malloc), exact-membership lookups, and a structural "fully free" check
-// that must pass before any unmapping happens. See
-// docs/phase12_heap_management.md for the ownership model and the
-// scavenge-on-acquire policy this module serves.
+// that must pass before any unmapping happens. See docs/architecture.md for
+// the ownership model and the scavenge-on-acquire policy this module serves.
 #include <mymalloc/regions.h>
 
 #include <mymalloc/block.h>

@@ -5,7 +5,7 @@
 // stack-growth direction, and the heap/stack gap. On Linux it additionally
 // dumps and annotates /proc/self/maps.
 //
-// See docs/phase1_memory_model.md for the full study this demonstrates.
+// See docs/architecture.md for the full study this demonstrates.
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

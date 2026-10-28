@@ -7,7 +7,7 @@
 // block is fused with its physically adjacent FREE neighbors so the
 // split/free cycles of Phases 6-7 round-trip back to one whole block.
 //
-// See docs/phase8_coalescing.md for the merge policy and its invariants.
+// See docs/architecture.md for the merge policy and its invariants.
 #include <cstddef>
 #include <cstdio>
 

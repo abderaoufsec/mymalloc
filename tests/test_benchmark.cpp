@@ -1,5 +1,5 @@
 // Phase 16 test: performance invariants for the benchmark
-// (examples/benchmark.cpp) — see docs/phase16_performance.md.
+// (examples/benchmark.cpp) — see docs/architecture.md.
 //
 // Benchmarks must not assert absolute wall-clock times (they are machine- and
 // load-dependent and would flake). Instead this suite locks down the PROPERTIES

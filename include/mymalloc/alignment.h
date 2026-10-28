@@ -1,6 +1,6 @@
 // mymalloc — alignment helpers (Phase 3).
 //
-// Alignment requirements for mymalloc (see docs/phase3_alignment.md):
+// Alignment requirements for mymalloc (see docs/architecture.md):
 // - my_malloc (Phase 5+) must return pointers aligned to
 //   my_default_alignment(). That is 16 bytes on 64-bit platforms (floored
 //   at 16, since MSVC's alignof(max_align_t) is only 8 there), matching the

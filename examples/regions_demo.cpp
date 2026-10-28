@@ -2,7 +2,7 @@
 // acquires, multiple regions coexist, and fully-free regions are returned to
 // the OS just before fresh memory is needed (scavenge-on-acquire). The last
 // section exercises the release guardrails. See
-// docs/phase12_heap_management.md.
+// docs/architecture.md.
 #include <mymalloc/free_list.h>
 #include <mymalloc/mymalloc.h>
 #include <mymalloc/raw_memory.h>

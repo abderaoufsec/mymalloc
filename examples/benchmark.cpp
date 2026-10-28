@@ -3,7 +3,7 @@
 // A self-contained benchmark that times the allocator's hot paths and compares
 // its two placement strategies on an identical workload. It prints ns/op and
 // Mops/s for each path and the fragmentation each strategy leaves behind, then
-// documents (see docs/phase16_performance.md) WHERE the time goes and why no
+// documents (see docs/architecture.md) WHERE the time goes and why no
 // optimization is applied yet — the roadmap rule is "optimize only after
 // profiling", and this is the profiling.
 //

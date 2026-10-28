@@ -1,5 +1,5 @@
 // Phase 7 test: verify block splitting (my_block_split) against the contract
-// documented in docs/phase7_splitting.md:
+// documented in docs/architecture.md:
 //   * a valid block splits into FRONT (same address) + REMAINDER (tail),
 //   * sizes add up and stay alignment multiples,
 //   * the physical neighbor chain is repaired on both sides,

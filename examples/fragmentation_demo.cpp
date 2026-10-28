@@ -4,7 +4,7 @@
 // fragmentation look like in real numbers, how the fresh-region model spikes
 // internal slack, how the split/reuse and coalescing paths keep it in check,
 // how realloc tracks the live request, and how scavenge-on-acquire shrinks
-// the mapped footprint. See docs/phase13_fragmentation.md.
+// the mapped footprint. See docs/architecture.md.
 #include <cstdio>
 
 #include <mymalloc/block.h>

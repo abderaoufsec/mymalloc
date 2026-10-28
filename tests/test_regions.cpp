@@ -1,5 +1,5 @@
 // Phase 12 test: verify the region registry (<mymalloc/regions.h>) against
-// the contract documented in docs/phase12_heap_management.md: every region
+// the contract documented in docs/architecture.md: every region
 // my_malloc acquires is tracked, multiple regions coexist, fully-free regions
 // are reclaimed scavenge-on-acquire (never while any allocation is live), the
 // release guardrails refuse anything that could cause an invalid unmapping

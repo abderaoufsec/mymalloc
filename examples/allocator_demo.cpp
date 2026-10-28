@@ -5,7 +5,7 @@
 // block metadata, writes patterns, frees them, and demonstrates the
 // documented failure cases.
 //
-// See docs/phase5_allocator.md for the design and its Phase 6-8 follow-ups.
+// See docs/architecture.md for the design and the free-list follow-ups.
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

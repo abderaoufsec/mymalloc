@@ -1,5 +1,5 @@
 // Phase 11 test: verify my_realloc (<mymalloc/mymalloc.h>) against the
-// contract documented in docs/phase11_realloc.md:
+// contract documented in docs/architecture.md:
 //   * realloc(NULL, n) behaves like malloc(n); realloc(p, 0) frees and
 //     returns NULL,
 //   * shrink / grow-within-existing-slack resizes IN PLACE (same pointer,

@@ -1,4 +1,4 @@
-// Block metadata for mymalloc (Phase 4). See docs/phase4_block_metadata.md.
+// Block metadata for mymalloc (Phase 4). See docs/architecture.md.
 //
 // Validation is ordered defensively: address-level facts (NULL, alignment,
 // size sanity, neighbor ADDRESSES) are checked before anything dereferences
@@ -157,7 +157,7 @@ void my_block_note_requested(my_block_header* block, size_t bytes) {
     }
     // The field holds 31 bits exactly; at or above the sentinel the exact
     // request is given up and the payload becomes the upper bound
-    // (docs/phase13_fragmentation.md documents the approximation).
+    // (docs/architecture.md documents the approximation).
     block->requested = bytes < MY_BLOCK_REQUESTED_HUGE ? static_cast<unsigned int>(bytes)
                                                        : MY_BLOCK_REQUESTED_HUGE;
 }

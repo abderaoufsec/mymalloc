@@ -3,9 +3,8 @@
 // This header is intentionally C compatible: the allocator API uses plain
 // C types and C linkage so that it can be used from C and C++ alike.
 //
-// The allocation functions below are the target API from
-// docs/mymalloc_documentation.md. They are only *declared* during the early
-// project phases; the implementation lands in Phase 5 and later.
+// The allocation functions below are the public API documented in
+// docs/api.md and docs/architecture.md.
 #ifndef MYMALLOC_H
 #define MYMALLOC_H
 

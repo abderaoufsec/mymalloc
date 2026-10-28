@@ -1,7 +1,7 @@
 // Phase 15 test: stress testing — random allocation/free/realloc over mixed
 // sizes and long-running workloads, with data-integrity verification, live
 // corruption detection, accounting cross-checks, and a leak audit. See
-// docs/phase15_stress_testing.md.
+// docs/architecture.md.
 //
 // Unlike Phases 5-14 this suite adds no new allocator behaviour; it exercises
 // everything built so far under randomized load and leans on the diagnostics

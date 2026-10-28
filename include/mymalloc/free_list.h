@@ -1,8 +1,7 @@
 // mymalloc — free list (Phase 6).
 //
 // Structure: an intrusive, address-ascending doubly linked list whose links
-// live in the PAYLOAD of every free block (the plan documented in
-// docs/phase4_block_metadata.md §8; design in docs/phase6_free_list.md):
+// live in the PAYLOAD of every free block (see docs/architecture.md):
 //
 //   block start                     user pointer (= links overlay)
 //   v                               v
@@ -64,7 +63,7 @@ my_block_header* my_free_list_first_fit(size_t min_block_size);
 // Best fit minimizes the leftover (internal) slack per placement and so tends
 // to preserve large free blocks for large future requests — at the cost of a
 // full O(n) scan instead of first fit's early exit. See
-// docs/phase9_allocation_strategies.md for the tradeoff and the default.
+// docs/architecture.md for the tradeoff and the default.
 my_block_header* my_free_list_best_fit(size_t min_block_size);
 
 // Head of the list (lowest address) or NULL on empty.

@@ -1,4 +1,4 @@
-// Free list for mymalloc (Phase 6). See docs/phase6_free_list.md.
+// Free list for mymalloc (Phase 6). See docs/architecture.md.
 //
 // Kept in strictly ascending address order: insertion walks once (membership
 // + position), removal walks once, first-fit scans until the first fit.

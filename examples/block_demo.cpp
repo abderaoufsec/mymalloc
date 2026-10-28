@@ -5,7 +5,7 @@
 // conversions, runs the validator at each step, then deliberately corrupts
 // a header to show detection and restores it.
 //
-// See docs/phase4_block_metadata.md for the design.
+// See docs/architecture.md for the design.
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

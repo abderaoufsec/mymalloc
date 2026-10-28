@@ -1,5 +1,5 @@
 // Phase 5 test: verify the first allocator (<mymalloc/mymalloc.h>)
-// against the contract documented in docs/phase5_allocator.md:
+// against the contract documented in docs/architecture.md:
 // aligned, writable, isolated allocations; free(nullptr) no-op; block
 // validity of every returned pointer; zero-size and overflow failure;
 // OS-refusal failure; and a batch of mixed-size allocations that are

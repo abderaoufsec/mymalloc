@@ -1,5 +1,5 @@
 // Phase 8 test: verify block coalescing against the contract documented in
-// docs/phase8_coalescing.md:
+// docs/architecture.md:
 //   * my_block_merge fuses two linked, address-ordered neighbors into the
 //     lower block, summing sizes and repairing the physical chain,
 //   * it is a pure physical operation — free flags are the caller's job,

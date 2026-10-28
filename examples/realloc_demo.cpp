@@ -13,7 +13,7 @@
 //   * failure — NULL back with the original block untouched.
 //
 // The demo makes each outcome visible through pointer identity, block
-// headers, free-list counts, and payload bytes. See docs/phase11_realloc.md.
+// headers, free-list counts, and payload bytes. See docs/architecture.md.
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

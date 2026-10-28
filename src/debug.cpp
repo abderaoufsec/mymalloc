@@ -1,7 +1,7 @@
 // mymalloc — debugging, pointer validation, and diagnostics (Phase 14).
 //
 // Implements the public surface in <mymalloc/debug.h> and the internal hooks
-// in src/debug_internal.h. See docs/phase14_debugging.md for the design.
+// in src/debug_internal.h. See docs/architecture.md for the design.
 //
 // Three things live here:
 //   1. Ownership + consistency: my_owns answers "is this a live allocation of

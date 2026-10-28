@@ -4,7 +4,7 @@
 // overflow-safe rounding helpers on representative and boundary values, and
 // aligns an interior pointer inside a real Phase 2 raw region.
 //
-// See docs/phase3_alignment.md for the full study.
+// See docs/architecture.md for the full study.
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>

@@ -1,5 +1,5 @@
 // Phase 14 demo: debugging, pointer validation, and diagnostics
-// (<mymalloc/debug.h>) — see docs/phase14_debugging.md. Walks through the three
+// (<mymalloc/debug.h>) — see docs/architecture.md. Walks through the three
 // surfaces live: the always-on usage accounting, ownership/consistency checks,
 // and the opt-in canaries + event counters that catch invalid/double frees and
 // heap overflows.
