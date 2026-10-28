@@ -162,10 +162,11 @@ int armed_grow() {
         return 0;
     }
     if (g_armed != NULL && g_armed_count > 0) {
-        std::memcpy(buffer, g_armed, g_armed_count * sizeof(my_block_header*));
+        std::memcpy(buffer, static_cast<const void*>(g_armed),
+                    g_armed_count * sizeof(my_block_header*));
     }
     if (g_armed != NULL) {
-        my_raw_release(g_armed, g_armed_capacity * sizeof(my_block_header*));
+        my_raw_release(static_cast<void*>(g_armed), g_armed_capacity * sizeof(my_block_header*));
     }
     g_armed = static_cast<my_block_header**>(buffer);
     g_armed_capacity = new_capacity;
@@ -196,7 +197,7 @@ void armed_remove(my_block_header* block) {
 // Frees the registry buffer entirely (used when checks are turned off).
 void armed_clear() {
     if (g_armed != NULL) {
-        my_raw_release(g_armed, g_armed_capacity * sizeof(my_block_header*));
+        my_raw_release(static_cast<void*>(g_armed), g_armed_capacity * sizeof(my_block_header*));
         g_armed = nullptr;
     }
     g_armed_count = 0;

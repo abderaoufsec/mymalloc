@@ -37,10 +37,6 @@
 #include <mymalloc/block.h>
 #include <mymalloc/regions.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // --- thread safety: process-wide mutex (constant-initialized) --------------
 
 // A single process-wide mutex serializes every public entry point that
@@ -64,6 +60,10 @@ class allocator_lock {
 public:
     allocator_lock() : guard_(allocator_mutex()) {}
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // --- region registry internals (caller must hold the allocator lock) ------
 //

@@ -238,8 +238,8 @@ void test_untracked_regions_untouched() {
     // pages had been unmapped.
     MYMALLOC_CHECK(my_free_list_valid() == 1); // walks foreign block: faults if unmapped
 
-    my_free(big);                  // its region is mine to reclaim later (coalesces while list intact)
-    my_free_list_clear();          // drop all blocks from the list
+    my_free(big);         // its region is mine to reclaim later (coalesces while list intact)
+    my_free_list_clear(); // drop all blocks from the list
     my_raw_release(foreign, page); // the TEST owns this region, not mymalloc
 }
 

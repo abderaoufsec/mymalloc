@@ -87,6 +87,7 @@ int main() {
     }
     // Non-overlap of the requested ranges.
     std::vector<std::pair<uintptr_t, std::size_t>> ranges;
+    ranges.reserve(count);
     for (std::size_t index = 0; index < count; ++index) {
         ranges.emplace_back(reinterpret_cast<uintptr_t>(pointers[index]), sizes[index]);
     }

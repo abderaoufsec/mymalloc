@@ -139,7 +139,7 @@ void test_paths_drain_clean() {
     void* p = my_malloc(32);
     MYMALLOC_CHECK(p != nullptr);
     for (int i = 0; i < 20000; ++i) {
-        p = my_realloc(p, static_cast<std::size_t>(32 + (i & 0x3F)));
+        p = my_realloc(p, 32U + static_cast<std::size_t>(i & 0x3F));
         MYMALLOC_CHECK(p != nullptr);
     }
     my_free(p);

@@ -327,8 +327,8 @@ void test_move_when_necessary() {
     MYMALLOC_CHECK(check_pattern(resized, 480U) == true);
     MYMALLOC_CHECK(my_free_list_count() == 2); // A+B coalesced survivor + new region remainder
     my_block_header* survivor = my_free_list_best_fit(1024U); // the 1024-byte survivor
-    MYMALLOC_CHECK(survivor == pair_a);      // survivor keeps the lowest address
-    MYMALLOC_CHECK(survivor->size == 1024U); // 512 + 512 fused on free
+    MYMALLOC_CHECK(survivor == pair_a);                       // survivor keeps the lowest address
+    MYMALLOC_CHECK(survivor->size == 1024U);                  // 512 + 512 fused on free
     MYMALLOC_CHECK(my_free_list_valid() == 1);
 
     my_free(resized);

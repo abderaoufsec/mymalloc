@@ -1,13 +1,32 @@
 # Static analysis configuration for clang-tidy (used locally and in CI where
 # available). Kept intentionally conservative: correctness-focused checks
 # first, style noise excluded.
+#
+# The exclusions below are deliberate, not cleanup debt:
+#   - bugprone-branch-clone: the educational demos use parallel branches for
+#     readability, and the duplicated bodies are intentional.
+#   - bugprone-easily-swappable-parameters: C APIs legitimately take adjacent
+#     size/alignment parameters of the same type.
+#   - bugprone-implicit-widening-of-multiplication-result: every reported site
+#     widens an already-safe size computation; explicit casts only add noise.
+#   - bugprone-unchecked-string-to-number-conversion: the Linux-only layout
+#     demo/test parse /proc/self/maps best-effort and validate the format.
+#   - performance-enum-size: my_strategy's fixed unsigned underlying type is a
+#     documented contract (well-defined out-of-range casts), not an accident.
+#   - performance-no-int-to-ptr: address-space demos/tests deliberately turn
+#     addresses back into pointers to illustrate the layout.
 Checks: >
   -*,
   bugprone-*,
   clang-analyzer-*,
   performance-*,
   portability-*,
-  -bugprone-easily-swappable-parameters
+  -bugprone-branch-clone,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -bugprone-unchecked-string-to-number-conversion,
+  -performance-enum-size,
+  -performance-no-int-to-ptr
 WarningsAsErrors: ''
 HeaderFilterRegex: '(include/mymalloc|src/|tests/|examples/)'
 FormatStyle: file

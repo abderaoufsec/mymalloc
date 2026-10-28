@@ -306,10 +306,10 @@ void test_remainder_too_small() {
         return;
     }
     my_block_header* const blk = my_user_to_block(p);
-    MYMALLOC_CHECK(blk->size == block_bytes);   // reused whole (payload slack kept)
-    MYMALLOC_CHECK(blk->next == nullptr);        // no remainder block created
+    MYMALLOC_CHECK(blk->size == block_bytes); // reused whole (payload slack kept)
+    MYMALLOC_CHECK(blk->next == nullptr);     // no remainder block created
     MYMALLOC_CHECK(blk->free == 0);
-    MYMALLOC_CHECK(my_free_list_count() == 0);   // the only free block is now live
+    MYMALLOC_CHECK(my_free_list_count() == 0); // the only free block is now live
 
     my_free(p);
     my_free_list_clear();
