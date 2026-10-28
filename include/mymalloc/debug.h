@@ -38,7 +38,8 @@
 //                         Phase 5-13 behaviour, block sizes and speed.
 //
 // Diagnostics never allocate on a failing path and never abort: they report
-// and let the caller decide. Not thread-safe (same policy as every phase).
+// and let the caller decide. Public entry points serialize on the allocator
+// lock, so they may be called concurrently with allocation.
 #ifndef MYMALLOC_DEBUG_H
 #define MYMALLOC_DEBUG_H
 

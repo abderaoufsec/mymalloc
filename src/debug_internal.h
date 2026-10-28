@@ -35,6 +35,7 @@
 #include <stddef.h>
 
 #include <mymalloc/block.h>
+#include <mymalloc/regions.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,6 +64,19 @@ class allocator_lock {
 public:
     allocator_lock() : guard_(allocator_mutex()) {}
 };
+
+// --- region registry internals (caller must hold the allocator lock) ------
+//
+// The public my_region_* functions in <mymalloc/regions.h> take the lock and
+// forward here. The allocator, the stats walk and the debug checker already
+// hold the lock, so they call these directly instead of self-deadlocking.
+
+int my_region_track_locked(void* base, size_t bytes);
+int my_region_find_locked(const void* addr, my_region* out);
+size_t my_region_count_locked(void);
+int my_region_at_locked(size_t index, my_region* out);
+int my_region_release_locked(void* base, size_t bytes);
+size_t my_regions_release_free_locked(void);
 
 // --- always-on accounting (called on the allocator happy paths) ------------
 

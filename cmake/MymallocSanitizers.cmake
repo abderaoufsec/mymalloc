@@ -14,10 +14,12 @@ function(mymalloc_apply_sanitizers)
         set(sanitizers undefined)
     elseif(mode STREQUAL "address-undefined")
         set(sanitizers address undefined)
+    elseif(mode STREQUAL "thread")
+        set(sanitizers thread)
     else()
         message(FATAL_ERROR
                 "Unknown MYMALLOC_SANITIZER '${mode}'. "
-                "Expected: off, address, undefined, address-undefined")
+                "Expected: off, address, undefined, address-undefined, thread")
     endif()
 
     if(MSVC)

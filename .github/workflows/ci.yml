@@ -57,6 +57,18 @@ jobs:
       - name: Test
         run: ctest --preset asan-ubsan
 
+  thread-sanitizer:
+    name: sanitizers-tsan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake --preset tsan -DMYMALLOC_WARNINGS_AS_ERRORS=ON
+      - name: Build
+        run: cmake --build --preset tsan --parallel
+      - name: Test
+        run: ctest --preset tsan
+
   format:
     name: clang-format
     runs-on: ubuntu-latest

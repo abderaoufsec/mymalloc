@@ -13,6 +13,8 @@
 #include <mymalloc/free_list.h>
 #include <mymalloc/regions.h>
 
+#include "debug_internal.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -97,13 +99,15 @@ int my_heap_stats_collect(my_heap_stats* out) {
         return 0;
     }
 
+    allocator_lock lock;
+
     my_heap_stats stats;
     std::memset(&stats, 0, sizeof(stats));
-    stats.region_count = my_region_count();
+    stats.region_count = my_region_count_locked();
 
     for (std::size_t index = 0; index < stats.region_count; ++index) {
         my_region region = {};
-        if (my_region_at(index, &region) != 1) {
+        if (my_region_at_locked(index, &region) != 1) {
             return 0; // cannot happen: count and entries are one registry
         }
         if (region.bytes > SIZE_MAX - stats.mapped_bytes) {

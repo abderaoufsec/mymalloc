@@ -105,7 +105,7 @@ int release_at(std::size_t index) {
 
 } // namespace
 
-int my_region_track(void* base, size_t bytes) {
+int my_region_track_locked(void* base, size_t bytes) {
     if (base == NULL || bytes == 0) {
         return 0;
     }
@@ -130,7 +130,7 @@ int my_region_track(void* base, size_t bytes) {
     return 1;
 }
 
-int my_region_find(const void* addr, my_region* out) {
+int my_region_find_locked(const void* addr, my_region* out) {
     if (addr == NULL || out == NULL) {
         return 0;
     }
@@ -145,11 +145,11 @@ int my_region_find(const void* addr, my_region* out) {
     return 0;
 }
 
-size_t my_region_count(void) {
+size_t my_region_count_locked(void) {
     return g_count;
 }
 
-int my_region_at(size_t index, my_region* out) {
+int my_region_at_locked(size_t index, my_region* out) {
     if (out == NULL || index >= g_count) {
         return 0;
     }
@@ -157,7 +157,7 @@ int my_region_at(size_t index, my_region* out) {
     return 1;
 }
 
-int my_region_release(void* base, size_t bytes) {
+int my_region_release_locked(void* base, size_t bytes) {
     // Guardrail 1: only an EXACTLY tracked base may be released — a pointer
     // from the middle of a region, or from a foreign raw mapping, is
     // refused without being dereferenced.
@@ -179,7 +179,7 @@ int my_region_release(void* base, size_t bytes) {
     return release_at(index);
 }
 
-size_t my_regions_release_free(void) {
+size_t my_regions_release_free_locked(void) {
     std::size_t released = 0;
     // Swap-remove means the entry after a release slides into the current
     // slot: do not advance the index in that case.
@@ -193,4 +193,36 @@ size_t my_regions_release_free(void) {
         }
     }
     return released;
+}
+
+// --- public wrappers: take the allocator lock exactly once ----------------
+
+int my_region_track(void* base, size_t bytes) {
+    allocator_lock lock;
+    return my_region_track_locked(base, bytes);
+}
+
+int my_region_find(const void* addr, my_region* out) {
+    allocator_lock lock;
+    return my_region_find_locked(addr, out);
+}
+
+size_t my_region_count(void) {
+    allocator_lock lock;
+    return my_region_count_locked();
+}
+
+int my_region_at(size_t index, my_region* out) {
+    allocator_lock lock;
+    return my_region_at_locked(index, out);
+}
+
+int my_region_release(void* base, size_t bytes) {
+    allocator_lock lock;
+    return my_region_release_locked(base, bytes);
+}
+
+size_t my_regions_release_free(void) {
+    allocator_lock lock;
+    return my_regions_release_free_locked();
 }

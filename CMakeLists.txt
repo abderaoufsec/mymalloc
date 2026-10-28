@@ -13,8 +13,9 @@ option(MYMALLOC_BUILD_TESTS "Build the mymalloc test suite" ON)
 option(MYMALLOC_BUILD_EXAMPLES "Build the mymalloc examples" ON)
 option(MYMALLOC_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 set(MYMALLOC_SANITIZER "off" CACHE STRING
-    "Enable sanitizer(s): off | address | undefined | address-undefined")
-set_property(CACHE MYMALLOC_SANITIZER PROPERTY STRINGS off address undefined address-undefined)
+    "Enable sanitizer(s): off | address | undefined | address-undefined | thread")
+set_property(CACHE MYMALLOC_SANITIZER PROPERTY STRINGS
+    off address undefined address-undefined thread)
 
 # ---------------------------------------------------------------------------
 # Global build settings

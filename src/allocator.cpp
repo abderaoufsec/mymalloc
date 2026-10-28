@@ -171,7 +171,7 @@ void* malloc_locked(size_t size) {
     //    when they could not satisfy the request after all — so hot
     //    alloc/free paths never thrash mmap/munmap. Blocks with any live
     //    allocation keep their region (see docs/phase12_heap_management.md).
-    static_cast<void>(my_regions_release_free());
+    static_cast<void>(my_regions_release_free_locked());
 
     // 4. Acquire memory when needed (fails -> NULL).
     //    Acquire at least min_chunk bytes so the region can carve a remainder
@@ -200,7 +200,7 @@ void* malloc_locked(size_t size) {
     //    from the front of the block. The remainder becomes a free block
     //    on the free list (Phase 6-7 split policy), so future allocations
     //    can reuse it without calling the OS.
-    if (my_region_track(region, region_bytes) != 1) {
+    if (my_region_track_locked(region, region_bytes) != 1) {
         my_raw_release(region, region_bytes);
         return NULL;
     }
@@ -406,7 +406,7 @@ void* realloc_locked(void* ptr, size_t new_size) {
         // policy): slightly oversized allocation beats an unusable sliver.
         my_dbg_note_resize(old_total, block->size); // Phase 14: live usage delta
         my_dbg_canary_restamp(block);               // Phase 14: canary moved
-        return ptr; // same pointer, prefix data preserved
+        return ptr;                                 // same pointer, prefix data preserved
     }
 
     // --- grow in place: absorb a sufficient FREE upper neighbor ------------
@@ -431,7 +431,7 @@ void* realloc_locked(void* ptr, size_t new_size) {
         my_block_note_requested(block, new_size);   // Phase 13: grown in place
         my_dbg_note_resize(old_total, block->size); // Phase 14: live usage delta
         my_dbg_canary_restamp(block);               // Phase 14: canary moved
-        return ptr; // same pointer, prefix data preserved
+        return ptr;                                 // same pointer, prefix data preserved
     }
 
     // --- move: allocate fresh, copy the overlap, free the old block --------
