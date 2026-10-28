@@ -10,8 +10,8 @@
 // scan costs O(n) per allocation, which is not worth it for the region-per-
 // block model where free lists stay short.
 //
-// Not thread-safe (same policy as every phase so far): the selector is a
-// single process-wide variable with no synchronization.
+// The selector is a single process-wide variable; my_set_strategy and
+// my_get_strategy take the allocator lock, so they are safe under concurrency.
 #ifndef MYMALLOC_STRATEGY_H
 #define MYMALLOC_STRATEGY_H
 

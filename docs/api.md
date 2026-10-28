@@ -5,9 +5,13 @@ C-compatible: all functions use C linkage and plain C types (`size_t`,
 `void*`, `NULL`), so it links from both C and C++. Nothing here allocates on a
 failing path, and (except where noted) a rejected call changes no state.
 
-**Thread-safety:** none of the API is thread-safe. The allocator keeps
-process-global state with no synchronization, consistent across every phase;
-concurrent use requires external locking.
+**Thread-safety:** the allocator, statistics, debug, region-registry and
+strategy entry points share one process-wide mutex. Each public call takes it
+exactly once, so they may be called concurrently and may race allocation
+safely. The lock is coarse-grained (calls serialize) and non-recursive:
+diagnostic hooks must not call back into the allocator. The low-level
+`block.h`, `alignment.h` and `free_list.h` helpers are unsynchronized internal
+building blocks; use them only while holding the lock or single-threaded.
 
 **Headers** (all under `include/mymalloc/`):
 

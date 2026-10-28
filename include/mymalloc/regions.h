@@ -28,7 +28,8 @@
 // The policy decision (WHEN the allocator gives regions back) lives in
 // src/allocator.cpp — scavenge-on-acquire, see docs/phase12_heap_management.md.
 //
-// Not thread-safe (same policy as every phase so far).
+// Public entry points serialize on the allocator lock and may be called
+// concurrently with allocation.
 #ifndef MYMALLOC_REGIONS_H
 #define MYMALLOC_REGIONS_H
 

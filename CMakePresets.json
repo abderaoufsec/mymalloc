@@ -53,6 +53,16 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "MYMALLOC_SANITIZER": "address-undefined"
       }
+    },
+    {
+      "name": "tsan",
+      "displayName": "Debug + TSan",
+      "description": "Debug build with ThreadSanitizer",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "MYMALLOC_SANITIZER": "thread"
+      }
     }
   ],
   "buildPresets": [
@@ -60,7 +70,8 @@
     { "name": "release", "configurePreset": "release", "configuration": "Release" },
     { "name": "asan", "configurePreset": "asan", "configuration": "Debug" },
     { "name": "ubsan", "configurePreset": "ubsan", "configuration": "Debug" },
-    { "name": "asan-ubsan", "configurePreset": "asan-ubsan", "configuration": "Debug" }
+    { "name": "asan-ubsan", "configurePreset": "asan-ubsan", "configuration": "Debug" },
+    { "name": "tsan", "configurePreset": "tsan", "configuration": "Debug" }
   ],
   "testPresets": [
     {
@@ -98,6 +109,13 @@
         "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
         "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1"
       }
+    },
+    {
+      "name": "tsan",
+      "configurePreset": "tsan",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true },
+      "environment": { "TSAN_OPTIONS": "halt_on_error=1:second_deadlock_stack=1" }
     }
   ]
 }

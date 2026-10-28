@@ -307,7 +307,8 @@ extern "C" int my_dbg_canary_is_armed(my_block_header* block) {
 // public: ownership
 // ===========================================================================
 
-extern "C" int my_owns(const void* ptr) {
+// Lock-assumed body: my_owns and my_canary_ok both hold the allocator lock.
+static int owns_locked(const void* ptr) {
     if (ptr == nullptr) {
         return 0;
     }
@@ -315,7 +316,7 @@ extern "C" int my_owns(const void* ptr) {
     // pointer lands in no tracked region (or in one but not at a block start),
     // which the header validation below then rejects.
     my_region region = {};
-    if (my_region_find(ptr, &region) != 1) {
+    if (my_region_find_locked(ptr, &region) != 1) {
         if (g_checks_enabled) {
             g_foreign_pointers += 1U;
         }
@@ -339,11 +340,18 @@ extern "C" int my_owns(const void* ptr) {
     return my_block_is_free(block) == 1 ? 0 : 1;
 }
 
+extern "C" int my_owns(const void* ptr) {
+    allocator_lock lock;
+    return owns_locked(ptr);
+}
+
 // ===========================================================================
 // public: consistency
 // ===========================================================================
 
 extern "C" int my_check_heap(char* detail, size_t detail_size) {
+    allocator_lock lock;
+
     auto fail = [&](const char* message) {
         if (detail != nullptr && detail_size > 0) {
             std::snprintf(detail, detail_size, "%s", message);
@@ -355,11 +363,11 @@ extern "C" int my_check_heap(char* detail, size_t detail_size) {
         return 0;
     };
 
-    const std::size_t region_count = my_region_count();
+    const std::size_t region_count = my_region_count_locked();
     std::size_t walked_free = 0;
     for (std::size_t index = 0; index < region_count; ++index) {
         my_region region = {};
-        if (my_region_at(index, &region) != 1) {
+        if (my_region_at_locked(index, &region) != 1) {
             return fail("region entry unreadable");
         }
         const auto base = reinterpret_cast<std::uintptr_t>(region.base);
@@ -411,6 +419,7 @@ extern "C" int my_diagnostics(my_diag* out) {
     if (out == nullptr) {
         return 0;
     }
+    allocator_lock lock;
     out->peak_live_bytes = g_peak_live_bytes;
     out->peak_live_blocks = g_peak_live_blocks;
     out->peak_mapped_bytes = g_peak_mapped_bytes;
@@ -428,6 +437,7 @@ extern "C" int my_diagnostics(my_diag* out) {
 }
 
 extern "C" void my_diag_reset(void) {
+    allocator_lock lock;
     g_invalid_frees = 0;
     g_double_frees = 0;
     g_corruptions = 0;
@@ -445,6 +455,7 @@ extern "C" void my_diag_reset(void) {
 // ===========================================================================
 
 extern "C" int my_enable_checks(int enable) {
+    allocator_lock lock;
     const bool previous = g_checks_enabled;
     if (enable != 0) {
         g_checks_enabled = true;
@@ -459,14 +470,16 @@ extern "C" int my_enable_checks(int enable) {
 }
 
 extern "C" int my_checks_enabled(void) {
+    allocator_lock lock;
     return g_checks_enabled ? 1 : 0;
 }
 
 extern "C" int my_canary_ok(void* ptr) {
+    allocator_lock lock;
     if (!g_checks_enabled || ptr == nullptr) {
         return 0;
     }
-    if (my_owns(ptr) != 1) {
+    if (owns_locked(ptr) != 1) {
         return 0; // foreign/freed/NULL: my_owns already counted a foreign reject
     }
     my_block_header* block = my_user_to_block(ptr);
@@ -479,6 +492,7 @@ extern "C" int my_canary_ok(void* ptr) {
 }
 
 extern "C" void my_set_diag_hook(my_diag_hook hook) {
+    allocator_lock lock;
     g_hook = hook;
 }
 

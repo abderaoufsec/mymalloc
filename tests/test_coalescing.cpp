@@ -236,7 +236,7 @@ void test_free_coalesces_with_remainder() {
     if (head == nullptr) {
         return;
     }
-    MYMALLOC_CHECK(head->size == 4096U); // the whole region is one block again
+    MYMALLOC_CHECK(head->size == my_raw_page_size() * 16U); // whole region is one block again
     MYMALLOC_CHECK(head->prev == nullptr);
     MYMALLOC_CHECK(head->next == nullptr);
     MYMALLOC_CHECK(my_free_list_valid() == 1);
@@ -279,7 +279,7 @@ void test_fragmentation_cycle() {
         if (head == nullptr) {
             return;
         }
-        MYMALLOC_CHECK(head->size == 8192U); // no fragmentation accrued
+        MYMALLOC_CHECK(head->size == my_raw_page_size() * 16U); // no fragmentation accrued
     }
 
     my_free_list_clear();

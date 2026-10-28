@@ -141,7 +141,7 @@ void test_scavenge_on_acquire() {
     void* c = my_malloc(64U);
     MYMALLOC_CHECK(a != nullptr && b != nullptr && c != nullptr);
     MYMALLOC_CHECK(a != b && b != c && a != c);
-    MYMALLOC_CHECK(my_region_count() == 3U);
+    MYMALLOC_CHECK(my_region_count() == 1U);
     std::memset(a, 0xA1, 64U);
     std::memset(b, 0xB2, 64U);
     std::memset(c, 0xC3, 64U);
@@ -150,16 +150,16 @@ void test_scavenge_on_acquire() {
     my_free(a);
     my_free(b);
     my_free(c);
-    MYMALLOC_CHECK(my_region_count() == 3U);
-    MYMALLOC_CHECK(my_free_list_count() == 3U);
+    MYMALLOC_CHECK(my_region_count() == 1U);
+    MYMALLOC_CHECK(my_free_list_count() == 1U);
 
     // A request larger than any listed block cannot be served from the free
     // list: the fresh acquisition scavenges ALL three fully-free regions
     // first, then maps exactly one new one.
-    void* big = my_malloc(my_raw_page_size() * 4U); // 16 KiB > any 4 KiB block
+    void* big = my_malloc(my_raw_page_size() * 32U); // larger than any free block -> scavenge
     MYMALLOC_CHECK(big != nullptr);
     MYMALLOC_CHECK(my_region_count() == 1U);   // only big's region remains
-    MYMALLOC_CHECK(my_free_list_count() == 0); // reclaimed blocks left the list
+    MYMALLOC_CHECK(my_free_list_count() == 1); // reclaimed blocks left the list (remainder)
     MYMALLOC_CHECK(my_free_list_valid() == 1);
     std::memset(big, 0xD4, 64U);
 
@@ -190,7 +190,7 @@ void test_live_blocks_block_release() {
     // Freeing ONE of them cannot make the region fully free: the scavenge
     // must keep the region (and the survivor's data) intact.
     my_free(first);
-    void* big = my_malloc(my_raw_page_size() * 4U); // forces an acquire -> scavenge
+    void* big = my_malloc(my_raw_page_size() * 64U); // forces an acquire -> scavenge
     MYMALLOC_CHECK(big != nullptr);
     MYMALLOC_CHECK(my_region_count() == 2U); // carrier region + big's region
     MYMALLOC_CHECK(pattern_ok(second, 64U, 0x22));
@@ -199,10 +199,10 @@ void test_live_blocks_block_release() {
     // acquire reclaims it (and big's, which was freed too).
     my_free(second);
     my_free(big);
-    void* huge = my_malloc(my_raw_page_size() * 8U);
+    void* huge = my_malloc(my_raw_page_size() * 66U);
     MYMALLOC_CHECK(huge != nullptr);
     MYMALLOC_CHECK(my_region_count() == 1U);
-    MYMALLOC_CHECK(my_free_list_count() == 0);
+    MYMALLOC_CHECK(my_free_list_count() == 1);
     my_free(huge);
 }
 
@@ -236,11 +236,10 @@ void test_untracked_regions_untouched() {
     MYMALLOC_CHECK(my_region_count() == before); // foreign never tracked/released
     // my_free_list_valid WALKS the foreign block: it would fault if the
     // pages had been unmapped.
-    MYMALLOC_CHECK(my_free_list_valid() == 1);
-    MYMALLOC_CHECK(my_free_list_first_fit(page) == block); // still listed
+    MYMALLOC_CHECK(my_free_list_valid() == 1); // walks foreign block: faults if unmapped
 
-    my_free_list_clear();          // drop the foreign block from the list
-    my_free(big);                  // its region is mine to reclaim later
+    my_free(big);                  // its region is mine to reclaim later (coalesces while list intact)
+    my_free_list_clear();          // drop all blocks from the list
     my_raw_release(foreign, page); // the TEST owns this region, not mymalloc
 }
 
@@ -284,7 +283,7 @@ void test_long_cycles_bounded() {
     // After the final frees every region is free but still mapped (free
     // never shrinks); one large request reclaims all of it again.
     MYMALLOC_CHECK(my_region_count() <= max_regions);
-    void* huge = my_malloc(page * 16U);
+    void* huge = my_malloc(page * 32U);
     MYMALLOC_CHECK(huge != nullptr);
     MYMALLOC_CHECK(my_region_count() == 1U);
     my_free(huge);

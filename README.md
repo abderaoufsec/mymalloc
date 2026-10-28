@@ -20,9 +20,9 @@ mymalloc/
 ├── src/                    # library implementation
 ├── tests/                  # CTest suite (dependency-free harness)
 ├── examples/               # sample programs
-├── scripts/                # developer tooling (check_format.py)
+├── scripts/                # developer tooling (format, clang-tidy driver)
 ├── docs/                   # documentation and roadmap
-└── .github/workflows/      # CI (build, test, sanitizers, format, cppcheck)
+└── .github/workflows/      # CI (build, test, sanitizers, format, static analysis)
 ```
 
 ## Target API
@@ -63,6 +63,7 @@ Available configure presets:
 | `asan`        | Debug      | AddressSanitizer             |
 | `ubsan`       | Debug      | UndefinedBehaviorSanitizer   |
 | `asan-ubsan`  | Debug      | ASan + UBSan                 |
+| `tsan`        | Debug      | ThreadSanitizer              |
 
 Build and test presets share the same names (`cmake --build --preset release`,
 `ctest --preset asan-ubsan`, ...). Presets place their output under
@@ -83,14 +84,31 @@ ctest --test-dir build --output-on-failure
 | `MYMALLOC_BUILD_TESTS`        | `ON`    | Build the test suite                            |
 | `MYMALLOC_BUILD_EXAMPLES`     | `ON`    | Build the examples                              |
 | `MYMALLOC_WARNINGS_AS_ERRORS` | `OFF`   | Turn strict warnings into errors (`-Werror` / `/WX`) |
-| `MYMALLOC_SANITIZER`          | `off`   | `address`, `undefined`, or `address-undefined`  |
+| `MYMALLOC_SANITIZER`          | `off`   | `address`, `undefined`, `address-undefined`, or `thread` |
 
 Example:
 `cmake --preset debug -DMYMALLOC_SANITIZER=address-undefined -DMYMALLOC_WARNINGS_AS_ERRORS=ON`
 
 > Sanitizers are best supported on Linux (GCC/Clang). MSYS2/MinGW does not
-> ship the ASan/UBSan runtimes for its toolchains, so on Windows use WSL or
-> rely on the CI sanitizer job (which runs ASan + UBSan on Ubuntu).
+> ship the ASan/UBSan/TSan runtimes for its toolchains, so on Windows use WSL
+> or rely on the CI sanitizer jobs (ASan + UBSan and TSan on Ubuntu).
+
+### Installing and consuming the package
+
+```sh
+cmake --install out/build/release --prefix /path/to/prefix
+```
+
+This installs the static library, every public header (including the generated
+`config.hpp`), and a CMake package. Consumers use the exported target:
+
+```cmake
+find_package(mymalloc 0.1 CONFIG REQUIRED)
+target_link_libraries(app PRIVATE mymalloc::mymalloc)
+```
+
+`mymalloc::mymalloc` carries the C++20 and `Threads::Threads` requirements, so
+consumers do not repeat them.
 
 ## Strict warnings
 
@@ -137,6 +155,8 @@ dependencies). Current tests:
 - `test_stress` — deterministic randomized alloc/free/realloc over mixed sizes,
   data-integrity verification, three-way accounting cross-check, leak audit
   (Phase 15)
+- `test_threads` - concurrent malloc/free/realloc, introspection racing
+  mutation, strategy toggling (Phase 19)
 - `test_benchmark` — benchmark invariants: deterministic workload, clean drains,
   reuse performs no OS acquisition (Phase 16)
 
@@ -196,8 +216,10 @@ For static analysis:
 1. **build-and-test** — GCC and Clang, Debug and Release, warnings-as-errors
 2. **build-and-test-windows** — MSVC, Debug and Release
 3. **sanitizers** — ASan + UBSan
-4. **format** — clang-format check
-5. **static-analysis** — cppcheck
+4. **thread-sanitizer** — TSan
+5. **format** — clang-format check
+6. **static-analysis** — cppcheck
+7. **clang-tidy** — bugprone/analyzer/performance/portability checks
 
 ## Roadmap
 

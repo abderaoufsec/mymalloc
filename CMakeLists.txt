@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(mymalloc
-        VERSION 0.1.0
+        VERSION 0.1.1
         DESCRIPTION "Educational user-space memory allocator"
         HOMEPAGE_URL "https://github.com/abderaoufsec/mymalloc"
         LANGUAGES CXX)
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 # ---------------------------------------------------------------------------
 # Options
@@ -13,8 +16,9 @@ option(MYMALLOC_BUILD_TESTS "Build the mymalloc test suite" ON)
 option(MYMALLOC_BUILD_EXAMPLES "Build the mymalloc examples" ON)
 option(MYMALLOC_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 set(MYMALLOC_SANITIZER "off" CACHE STRING
-    "Enable sanitizer(s): off | address | undefined | address-undefined")
-set_property(CACHE MYMALLOC_SANITIZER PROPERTY STRINGS off address undefined address-undefined)
+    "Enable sanitizer(s): off | address | undefined | address-undefined | thread")
+set_property(CACHE MYMALLOC_SANITIZER PROPERTY STRINGS
+    off address undefined address-undefined thread)
 
 # ---------------------------------------------------------------------------
 # Global build settings
@@ -37,6 +41,9 @@ include(MymallocSanitizers)
 mymalloc_apply_warnings()
 mymalloc_apply_sanitizers()
 
+# std::mutex (the allocator lock) needs pthread on POSIX platforms.
+find_package(Threads REQUIRED)
+
 # ---------------------------------------------------------------------------
 # Library target
 #
@@ -58,12 +65,52 @@ add_library(mymalloc::mymalloc ALIAS mymalloc)
 target_include_directories(mymalloc
     PUBLIC
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>")
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated/include>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
+
+target_compile_features(mymalloc PUBLIC cxx_std_20)
+target_link_libraries(mymalloc PUBLIC Threads::Threads)
 
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/include/mymalloc/config.hpp.in"
     "${CMAKE_CURRENT_BINARY_DIR}/generated/include/mymalloc/config.hpp"
     @ONLY)
+
+# ---------------------------------------------------------------------------
+# Installation and package export
+# ---------------------------------------------------------------------------
+install(TARGETS mymalloc
+        EXPORT mymallocTargets
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/mymalloc"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+        FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/generated/include/mymalloc/config.hpp"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/mymalloc")
+
+install(EXPORT mymallocTargets
+        FILE mymallocTargets.cmake
+        NAMESPACE mymalloc::
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mymalloc")
+
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/mymallocConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/mymallocConfig.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mymalloc")
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/mymallocConfigVersion.cmake"
+    VERSION "${mymalloc_VERSION}"
+    COMPATIBILITY SameMajorVersion)
+
+install(FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/mymallocConfig.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/mymallocConfigVersion.cmake"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/mymalloc")
 
 # ---------------------------------------------------------------------------
 # Tests and examples

@@ -19,7 +19,8 @@
 // path. Ratios are integer permille (0..1000, truncated) for exact,
 // C-portable assertions.
 //
-// Not thread-safe (same policy as every phase so far).
+// my_heap_stats_collect serializes on the allocator lock and may be called
+// concurrently with allocation.
 #ifndef MYMALLOC_STATS_H
 #define MYMALLOC_STATS_H
 

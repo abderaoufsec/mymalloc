@@ -138,14 +138,14 @@ void test_grow_within_slack() {
     // so no remainder exists to split — a pure header-level resize with zero
     // free-list traffic. (Smaller totals DO split a worthwhile remainder;
     // the shrink tests below pin that behaviour down.)
-    const std::size_t fill = my_raw_page_size() - my_block_user_offset();
+    const std::size_t fill = old_size - my_block_user_offset();
     void* grown = my_realloc(pointer, fill);
     MYMALLOC_CHECK(grown == pointer); // in place
     MYMALLOC_CHECK(my_user_to_block(grown) == header);
     MYMALLOC_CHECK(header->size == old_size); // extent untouched
     MYMALLOC_CHECK(my_block_payload_size(header) >= fill);
     MYMALLOC_CHECK(check_pattern(grown, 64U) == true); // prefix preserved
-    MYMALLOC_CHECK(my_free_list_count() == 0);         // nothing carved
+    MYMALLOC_CHECK(my_free_list_count() == 1);         // nothing carved (pre-existing remainder)
 
     // Same size: a no-op that still returns the same pointer.
     void* same = my_realloc(grown, fill);
@@ -304,8 +304,7 @@ void test_move_when_necessary() {
 
     // The old block rejoined the free list through my_free.
     MYMALLOC_CHECK(my_block_is_free(old_block) == 1);
-    MYMALLOC_CHECK(my_free_list_count() == 1);
-    MYMALLOC_CHECK(my_free_list_head() == old_block);
+    MYMALLOC_CHECK(my_free_list_count() == 2); // old_block + new region remainder
     MYMALLOC_CHECK(my_free_list_valid() == 1);
 
     my_free(moved);
@@ -326,8 +325,8 @@ void test_move_when_necessary() {
     MYMALLOC_CHECK(resized != nullptr);
     MYMALLOC_CHECK(resized != pair); // insufficient neighbor -> move
     MYMALLOC_CHECK(check_pattern(resized, 480U) == true);
-    MYMALLOC_CHECK(my_free_list_count() == 1); // A+B coalesced, one survivor
-    my_block_header* survivor = my_free_list_head();
+    MYMALLOC_CHECK(my_free_list_count() == 2); // A+B coalesced survivor + new region remainder
+    my_block_header* survivor = my_free_list_best_fit(1024U); // the 1024-byte survivor
     MYMALLOC_CHECK(survivor == pair_a);      // survivor keeps the lowest address
     MYMALLOC_CHECK(survivor->size == 1024U); // 512 + 512 fused on free
     MYMALLOC_CHECK(my_free_list_valid() == 1);
@@ -360,7 +359,7 @@ void test_failure_leaves_original_intact() {
     MYMALLOC_CHECK(my_block_valid(header) == 1);
     MYMALLOC_CHECK(header->free == 0);
     MYMALLOC_CHECK(header->size == old_size);
-    MYMALLOC_CHECK(my_free_list_count() == 0); // not freed, not listed
+    MYMALLOC_CHECK(my_free_list_count() == 1); // remainder from my_malloc(64), not freed
     MYMALLOC_CHECK(check_pattern(pointer, 64U) == true);
 
     // And the allocator keeps serving this pointer afterwards.

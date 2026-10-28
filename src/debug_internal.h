@@ -31,39 +31,52 @@
 #ifndef MYMALLOC_DEBUG_INTERNAL_H
 #define MYMALLOC_DEBUG_INTERNAL_H
 
-#include <atomic>
+#include <mutex>
 #include <stddef.h>
 
 #include <mymalloc/block.h>
+#include <mymalloc/regions.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// --- thread safety: process-wide spinlock (atomic_flag, zero-allocation) ---
+// --- thread safety: process-wide mutex (constant-initialized) --------------
 
-// Global spinlock initialized once to ATOMIC_FLAG_INIT (unlocked).
-// Allocation entry points acquire/release this lock so that concurrent
-// my_malloc/my_free calls from multiple threads do not corrupt internal
-// metadata (free-list links, region registry, canary registry).
-// The lock is never held across my_malloc/my_free calls from different
-// threads in a way that would cause deadlock: the lock is very short-held
-// (only the critical section of header/free-list update) and the lock
-// ordering is simple (one global lock, no nested locks).
-inline void lock_allocator(void) {
-    // Myers's algorithm / simple test-and-set via atomic_flag.
-    // C++11 std::atomic_flag is lock-free on every mainstream platform.
-    g_alloc_lock.test_and_set(std::memory_order_acquire);
+// A single process-wide mutex serializes every public entry point that
+// touches shared state (allocator metadata, free list, region registry,
+// strategy, debug counters and canaries). A function-local static is
+// zero-initialized then constant-initialized on first use (a "magic static"),
+// so there is no dynamic-initialization-order problem and no dynamic
+// allocation. The lock is non-recursive and is taken exactly once per public
+// call; internal helpers assume the lock is already held and never lock
+// themselves, so there is no self-deadlock.
+inline std::mutex& allocator_mutex() {
+    static std::mutex g_alloc_lock;
+    return g_alloc_lock;
 }
 
-inline void unlock_allocator(void) {
-    g_alloc_lock.clear(std::memory_order_release);
-}
+// RAII guard: acquires the allocator lock on construction and releases it on
+// destruction, so every return path is covered without a manual unlock.
+class allocator_lock {
+    std::lock_guard<std::mutex> guard_;
 
-// Global spinlock (default: unlocked = clear).
-inline bool g_alloc_lock_initialized = false;
-// Note: g_alloc_lock itself is implicitly zero-initialized (ATOMIC_FLAG_INIT),
-// so the lock starts in the unlocked state without any explicit init call.
+public:
+    allocator_lock() : guard_(allocator_mutex()) {}
+};
+
+// --- region registry internals (caller must hold the allocator lock) ------
+//
+// The public my_region_* functions in <mymalloc/regions.h> take the lock and
+// forward here. The allocator, the stats walk and the debug checker already
+// hold the lock, so they call these directly instead of self-deadlocking.
+
+int my_region_track_locked(void* base, size_t bytes);
+int my_region_find_locked(const void* addr, my_region* out);
+size_t my_region_count_locked(void);
+int my_region_at_locked(size_t index, my_region* out);
+int my_region_release_locked(void* base, size_t bytes);
+size_t my_regions_release_free_locked(void);
 
 // --- always-on accounting (called on the allocator happy paths) ------------
 
